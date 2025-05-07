@@ -4,30 +4,30 @@ module.exports = {
   icon: "lokarni-icon.png",
   menu: async (kernel, info) => {
     const installed = await info.exists("env");
-    const isRunning = await kernel.isRunning("start.js");
-
     return [
       {
         text: "Installieren",
         href: "install.js",
-        default: !installed,
-        disabled: installed
+        // automatisch öffnen, wenn env nicht existiert
+        default: !installed
       },
       {
-        text: isRunning ? "Stop" : "Start",
-        href: isRunning ? "stop.js" : "start.js",
-        default: installed && !isRunning,
-        disabled: !installed
+        text: "Start",
+        href: "start.js",
+        // automatisch starten, wenn env schon da ist
+        default: installed
+      },
+      {
+        text: "Stop",
+        href: "stop.js"
       },
       {
         text: "Update",
-        href: "update.js",
-        disabled: !installed
+        href: "update.js"
       },
       {
         text: "Zurücksetzen",
-        href: "reset.js",
-        disabled: !installed
+        href: "reset.js"
       }
     ];
   },
