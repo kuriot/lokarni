@@ -1,8 +1,8 @@
 module.exports = {
   name: "Lokarni",
-  description: "Lokale Mediathek für KI-Modelle, Prompts und Medien mit CivitAI-Import.",
+  description: "A local media library for managing AI models, prompts, and media, featuring CivitAI import functionality.",
   type: "web",
-  icon: "lokarni-icon.png", // Stelle sicher, dass diese Datei im Root liegt
+  icon: "lokarni-icon.png",
   setup: {
     scripts: {
       "python-deps": "pip install -r requirements.txt",
@@ -11,7 +11,7 @@ module.exports = {
   },
   start: {
     scripts: {
-      backend: "uvicorn backend.main:app --port 7860",
+      backend: "uvicorn backend.main:app --port 8000",
       frontend: "cd frontend && npm run dev"
     }
   },
