@@ -1,4 +1,5 @@
-# LokArni
+![Lokarni Logo](https://github.com/user-attachments/assets/e4a88ded-94c9-4273-8b8d-e24796b78a26)
+
 
 **LokArni** ist eine lokal betriebene Fullstack-Webanwendung zur Organisation, Visualisierung und Wiederverwendung KI-bezogener Inhalte.  
 Sie ermöglicht es, Modelle (z. B. LORAs, Checkpoints), Bilder, Videos und begleitende Metadaten zentral zu speichern, zu durchsuchen und zu kategorisieren.
