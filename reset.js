@@ -1,3 +1,4 @@
+// reset.js
 module.exports = {
   run: [
     {
@@ -13,7 +14,13 @@ module.exports = {
     {
       method: "notify",
       params: {
-        html: "Das Projekt wurde zur Neuinstallation zurückgesetzt. Klicke nun auf „Installieren“."
+        html: "Das Projekt wurde zur Neuinstallation zurückgesetzt. Die Installation startet jetzt automatisch..."
+      }
+    },
+    {
+      method: "script.start",
+      params: {
+        uri: "install.js"
       }
     }
   ]
