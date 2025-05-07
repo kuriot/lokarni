@@ -13,7 +13,6 @@ class CivitaiImportRequest(BaseModel):
     civitai_url: str
     api_key: str | None = None
 
-# 📥 Datei speichern
 def download_file(url, save_path):
     response = requests.get(url)
     if response.status_code == 200:
@@ -23,7 +22,6 @@ def download_file(url, save_path):
         return True
     return False
 
-# 🔎 Slug oder ID auflösen
 def resolve_model_id_from_slug(slug_or_id: str, headers: dict) -> int:
     if slug_or_id.isdigit():
         return int(slug_or_id)
@@ -38,7 +36,6 @@ def resolve_model_id_from_slug(slug_or_id: str, headers: dict) -> int:
         raise HTTPException(status_code=400, detail="Kein Modell mit diesem Slug gefunden.")
     return match["id"]
 
-# 📦 Modell-Import
 @router.post("/from-civitai")
 def import_from_civitai(data: CivitaiImportRequest, request: Request, db: Session = Depends(database.get_db)):
     civitai_url = data.civitai_url
@@ -94,7 +91,7 @@ def import_from_civitai(data: CivitaiImportRequest, request: Request, db: Sessio
         negative_prompt = first_image_meta.get("negativePrompt", "")
         resources = images[0].get("resources", []) if images else []
         used_resources = ", ".join(
-            f'{r["name"]} ({r["type"]}{f": {r.get("weight")}" if "weight" in r else ""})' for r in resources
+            f'{r["name"]} ({r["type"] + (": " + str(r["weight"]) if "weight" in r else "")})' for r in resources
         )
 
         new_asset = models.Asset(
@@ -125,17 +122,14 @@ def import_from_civitai(data: CivitaiImportRequest, request: Request, db: Sessio
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fehler beim Verarbeiten des Modells: {e}")
 
-# 🖼️ GET-Import für einzelne Bilder (optional)
 @router.get("/from-civitai-image/{image_id}")
 def import_single_image_get(image_id: int, request: Request, db: Session = Depends(database.get_db)):
     return import_single_image_internal(image_id, request, db)
 
-# 🖼️ POST-Import für einzelne Bilder (für dein Frontend-Formular)
 @router.post("/from-civitai-image/{image_id}")
 def import_single_image_post(image_id: int, request: Request, db: Session = Depends(database.get_db)):
     return import_single_image_internal(image_id, request, db)
 
-# 🔁 Gemeinsame Import-Logik
 def import_single_image_internal(image_id: int, request: Request, db: Session):
     headers = {"User-Agent": "Lokarni-Importer/1.0"}
     if "civitai-api-key" in request.cookies:
