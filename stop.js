@@ -1,15 +1,12 @@
 module.exports = {
   run: [
     {
-      method: "shell.kill",
+      method: "shell.run",
       params: {
-        name: "uvicorn"
-      }
-    },
-    {
-      method: "shell.kill",
-      params: {
-        name: "vite"
+        message: [
+          "taskkill /F /IM uvicorn.exe /T",
+          "taskkill /F /IM node.exe /T"
+        ]
       }
     }
   ]

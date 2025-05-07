@@ -2,25 +2,23 @@ module.exports = {
   title: "Lokarni",
   icon: "lokarni-icon.png",
   menu: async (kernel, info) => {
-    if (info.exists("venv")) {
-      return [
-        { text: "Installieren", href: "install.js" },
-        { default: true, text: "Start", href: "start.js" },
-        { text: "Beenden", href: "stop.js" }
-      ];
-    } else {
-      return [
-        { default: true, text: "Installieren", href: "install.js" },
-        { text: "Start", href: "start.js" }
-      ];
-    }
-  },
-  widgets: [
-    {
-      type: "link",
-      text: "Open Web UI",
-      href: "{{local.url}}",
-      icon: "globe"
-    }
-  ]
+    const isInstalled = await info.exists("env");
+    return [
+      {
+        text: "Installieren",
+        href: "install.js",
+        selected: !isInstalled
+      },
+      {
+        text: "Start",
+        href: "start.js",
+        selected: isInstalled,
+        pinned: true
+      },
+      {
+        text: "Stop",
+        href: "stop.js"
+      }
+    ];
+  }
 };

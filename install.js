@@ -3,7 +3,7 @@ module.exports = {
     {
       method: "shell.run",
       params: {
-        venv: "venv",
+        venv: "env",
         message: [
           "pip install -r requirements.txt"
         ]
@@ -20,7 +20,7 @@ module.exports = {
     {
       method: "notify",
       params: {
-        html: "Installation abgeschlossen. Starte Lokarni über den Start-Tab."
+        html: "Abhängigkeiten installiert. Klicke auf \"Start\"."
       }
     }
   ]
