@@ -12,6 +12,9 @@ module.exports = {
       params: {
         html: "Projekt wurde aktualisiert. Starte es neu, um die Änderungen zu sehen."
       }
+    },
+    {
+      method: "refresh"
     }
   ]
 };

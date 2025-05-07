@@ -19,6 +19,9 @@ module.exports = {
       params: {
         html: "Installation abgeschlossen. Starte das Projekt über den Start-Button."
       }
+    },
+    {
+      method: "refresh"
     }
   ]
 };

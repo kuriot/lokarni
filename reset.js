@@ -22,6 +22,9 @@ module.exports = {
       params: {
         uri: "install.js"
       }
+    },
+    {
+      method: "refresh"
     }
   ]
 };
