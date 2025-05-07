@@ -3,24 +3,18 @@ module.exports = {
     {
       method: "shell.run",
       params: {
+        venv: "env",
         message: [
-          "pip install -r requirements.txt"
-        ],
-      }
-    },
-    {
-      method: "shell.run",
-      params: {
-        message: [
+          "pip install -r requirements.txt",
           "cd frontend && npm install"
-        ],
+        ]
       }
     },
     {
       method: "notify",
       params: {
-        html: "Installation abgeschlossen! Klicken Sie auf den 'start' Tab, um Lokarni zu starten."
+        html: "Installation abgeschlossen! Klicke auf 'Start', um Lokarni zu starten."
       }
     }
   ]
-}
+};
