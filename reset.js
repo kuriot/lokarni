@@ -14,13 +14,7 @@ module.exports = {
     {
       method: "notify",
       params: {
-        html: "Das Projekt wurde zur Neuinstallation zurückgesetzt. Die Installation startet jetzt automatisch..."
-      }
-    },
-    {
-      method: "script.start",
-      params: {
-        uri: "install.js"
+        html: "Projekt wurde zurückgesetzt. Klicke auf <b>Installieren</b>, um neu zu starten."
       }
     },
     {

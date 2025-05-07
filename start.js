@@ -1,27 +1,30 @@
+// start.js
 module.exports = {
   daemon: true,
   run: [
-    // Backend (uvicorn)
     {
       method: "shell.run",
       params: {
+        path: "backend",
         venv: "env",
-        path: ".",
-        message: ["uvicorn backend.main:app --host 127.0.0.1 --port 8000"],
+        message: [
+          "uvicorn main:app --host 127.0.0.1 --port 8000"
+        ],
         on: [
           {
-            event: /Uvicorn running on http:\/\/127\.0\.0\.1:8000/,
+            event: /Uvicorn running on http:\/\/[^\s]+/,
             done: true
           }
         ]
       }
     },
-    // Frontend (Vite)
     {
       method: "shell.run",
       params: {
         path: "frontend",
-        message: ["npm run dev"],
+        message: [
+          "npm run dev"
+        ],
         on: [
           {
             event: /http:\/\/localhost:5173/,
@@ -30,7 +33,6 @@ module.exports = {
         ]
       }
     },
-    // Übergabe an pinokio.js
     {
       method: "local.set",
       params: {
