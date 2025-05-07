@@ -7,23 +7,28 @@ module.exports = {
     const isRunning = await kernel.isRunning("start.js");
 
     return [
-      ...(installed ? [] : [{
-        default: true,
+      {
         text: "Installieren",
-        href: "install.js"
-      }]),
-      ...(installed ? [{
-        default: !isRunning,
+        href: "install.js",
+        default: !installed,
+        disabled: installed
+      },
+      {
         text: isRunning ? "Stop" : "Start",
-        href: isRunning ? "stop.js" : "start.js"
-      }] : []),
-      ...(installed ? [{
+        href: isRunning ? "stop.js" : "start.js",
+        default: installed && !isRunning,
+        disabled: !installed
+      },
+      {
         text: "Update",
-        href: "update.js"
-      }, {
+        href: "update.js",
+        disabled: !installed
+      },
+      {
         text: "Zurücksetzen",
-        href: "reset.js"
-      }] : [])
+        href: "reset.js",
+        disabled: !installed
+      }
     ];
   },
   url: async (kernel) => kernel.local.get("url")
