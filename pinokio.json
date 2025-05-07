@@ -1,12 +1,12 @@
 {
   "name": "Lokarni",
-  "description": "Lokale Mediathek für KI-Modelle und Medien (Bilder, Videos, Checkpoints)",
-  "scripts": {
-    "start": [
-      "cd backend && uvicorn main:app --host 0.0.0.0 --port 8000",
-      "cd frontend && npm install && npm run dev"
-    ]
+  "description": "Lokale Mediathek für KI-Modelle, Prompts und Medien mit CivitAI-Import.",
+  "type": "web",
+  "start": {
+    "scripts": {
+      "python": "uvicorn backend.main:app --port 7860",
+      "frontend": "cd frontend && npm install && npm run dev"
+    }
   },
-  "port": 5173,
-  "type": "web"
+  "entry": "http://localhost:5173"
 }
