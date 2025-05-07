@@ -1,12 +1,15 @@
 module.exports = {
   run: [
     {
-      method: "shell.run",
+      method: "shell.kill",
       params: {
-        message: [
-          "pkill -f uvicorn",
-          "pkill -f vite"
-        ]
+        name: "uvicorn"
+      }
+    },
+    {
+      method: "shell.kill",
+      params: {
+        name: "vite"
       }
     }
   ]
