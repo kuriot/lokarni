@@ -4,7 +4,7 @@ module.exports = {
       method: "shell.run",
       params: {
         venv: "env",
-        message: ["pip install -r requirements.txt"],
+        message: ["pip install -r requirements.txt"]
       }
     },
     {
