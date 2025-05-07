@@ -1,40 +1,35 @@
+// pinokio.js
 module.exports = {
   title: "Lokarni",
   icon: "lokarni-icon.png",
   menu: async (kernel, info) => {
-    const hasInstall = await info.exists("install.js");
-    const hasEnv = await info.exists("env");
-    const isRunning = await kernel.isRunning("start.js");
-
-    // Menüeinträge dynamisch bauen
-    const menu = [];
-
-    if (hasInstall && !hasEnv) {
-      menu.push({
-        default: true,
+    const installed = await info.exists("env");
+    return [
+      {
         text: "Installieren",
-        href: "install.js"
-      });
-    }
-
-    if (hasEnv) {
-      menu.push({
-        default: !isRunning,
-        text: isRunning ? "Stop" : "Start",
-        href: isRunning ? "stop.js" : "start.js"
-      });
-
-      menu.push({
+        href: "install.js",
+        // automatisch öffnen, wenn env nicht existiert
+        default: !installed
+      },
+      {
+        text: "Start",
+        href: "start.js",
+        // automatisch starten, wenn env schon da ist
+        default: installed
+      },
+      {
+        text: "Stop",
+        href: "stop.js"
+      },
+      {
         text: "Update",
         href: "update.js"
-      });
-
-      menu.push({
+      },
+      {
         text: "Zurücksetzen",
         href: "reset.js"
-      });
-    }
-
-    return menu;
-  }
+      }
+    ];
+  },
+  url: async (kernel) => kernel.local.get("url")
 };
