@@ -7,27 +7,22 @@ module.exports = {
       {
         text: "Installieren",
         href: "install.js",
-        default: !installed   // sorgt für automatische Ausführung bei Erststart
+        default: !installed
       },
-      ...(installed ? [
-        {
-          text: "Start",
-          href: "start.js",
-          default: true
-        },
-        {
-          text: "Stop",
-          href: "stop.js"
-        },
-        {
-          text: "Update",
-          href: "update.js"
-        },
-        {
-          text: "Zurücksetzen",
-          href: "reset.js"
-        }
-      ] : [])
+      ...(installed ? [{
+        text: "Start",
+        href: "start.js",
+        default: true
+      }, {
+        text: "Stop",
+        href: "stop.js"
+      }, {
+        text: "Update",
+        href: "update.js"
+      }, {
+        text: "Zurücksetzen",
+        href: "reset.js"
+      }] : [])
     ];
   },
   url: async (kernel) => kernel.local.get("url")

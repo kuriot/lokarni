@@ -3,6 +3,12 @@ module.exports = {
     {
       method: "shell.run",
       params: {
+        message: ["python -m venv env"]
+      }
+    },
+    {
+      method: "shell.run",
+      params: {
         venv: "env",
         message: ["pip install -r requirements.txt"]
       }
@@ -17,11 +23,8 @@ module.exports = {
     {
       method: "notify",
       params: {
-        html: "Installation abgeschlossen. Starte das Projekt über den Start-Button."
+        html: "✅ Installation abgeschlossen. Du kannst das Projekt jetzt starten."
       }
-    },
-    {
-      method: "refresh"
     }
   ]
 };
