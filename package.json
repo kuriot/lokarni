@@ -4,4 +4,8 @@
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1"
   }
+  
+  "scripts": {
+    "dev": "node ./node_modules/vite/bin/vite.js"
+ }
 }
