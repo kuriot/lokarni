@@ -5,9 +5,14 @@ module.exports = {
       method: "shell.run",
       params: {
         venv: "env",
-        path: "./",
-        message: ["uvicorn backend.main:app --port 8000"],
-        on: [{ event: "Connected|Uvicorn running on", done: true }]
+        path: "backend",
+        message: ["uvicorn main:app --port 8000 --host 127.0.0.1"],
+        on: [
+          {
+            event: /Uvicorn running on http:\/\/\S+/,
+            done: true
+          }
+        ]
       }
     },
     {
@@ -15,7 +20,12 @@ module.exports = {
       params: {
         path: "frontend",
         message: ["npm run dev"],
-        on: [{ event: "/http:\/\/localhost:5173/", done: true }]
+        on: [
+          {
+            event: /http:\/\/\S+/,
+            done: true
+          }
+        ]
       }
     },
     {

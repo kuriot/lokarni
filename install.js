@@ -4,23 +4,20 @@ module.exports = {
       method: "shell.run",
       params: {
         venv: "env",
-        message: [
-          "pip install -r requirements.txt"
-        ]
+        message: ["pip install -r requirements.txt"],
       }
     },
     {
       method: "shell.run",
       params: {
-        message: [
-          "cd frontend && npm install"
-        ]
+        path: "frontend",
+        message: ["npm install"]
       }
     },
     {
       method: "notify",
       params: {
-        html: "Abhängigkeiten installiert. Klicke auf \"Start\"."
+        html: "Installation abgeschlossen. Starte das Projekt über den Start-Button."
       }
     }
   ]

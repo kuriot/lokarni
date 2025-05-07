@@ -4,8 +4,8 @@ module.exports = {
       method: "shell.run",
       params: {
         message: [
-          "taskkill /F /IM uvicorn.exe /T",
-          "taskkill /F /IM node.exe /T"
+          "pkill -f uvicorn",
+          "pkill -f vite"
         ]
       }
     }
