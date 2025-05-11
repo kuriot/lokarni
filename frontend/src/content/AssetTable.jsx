@@ -32,6 +32,11 @@ export default function AssetTable() {
     setSelectedAssets([]);
   };
 
+  const findAssetById = async (id) => {
+    const res = await axios.get(`/api/assets/${id}`);
+    return res.data;
+  };
+
   const deleteAsset = async (id) => {
     await axios.delete(`/api/assets/${id}`);
     loadAssets();
@@ -155,6 +160,7 @@ export default function AssetTable() {
         media_files: asset.media_files,
         subcategory: asset.subcategory,
         description: asset.description || "",
+        path: asset.path || ""
       });
 
       if (Array.isArray(asset.media_files)) {
@@ -366,18 +372,20 @@ export default function AssetTable() {
           </div>
         )}
       </div>
-
       {/* Modal */}
       {editingAsset && (
         <AssetModal
           asset={editingAsset}
           onClose={() => setEditingAsset(null)}
-          onUpdate={() => {
-            loadAssets();
+          onUpdate={async () => {
+            const updated = await findAssetById(editingAsset.id);
+            setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
             setEditingAsset(null);
           }}
         />
       )}
+
+
     </div>
   );
 }

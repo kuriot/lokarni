@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +18,8 @@ from backend.routes import (
     asset_routes,
     category_routes,
     upload_routes,
-    import_zip_route
+    import_zip_route,
+    asset_type_routes  # Neue Route importieren
 )
 
 app = FastAPI()
@@ -37,7 +42,7 @@ def initialize_categories():
     try:
         existing = cat_crud.get_categories(db)
 
-        # 👉 Systemkategorie „General“ + feste Unterkategorien anlegen
+        # 👉 Systemkategorie „General" + feste Unterkategorien anlegen
         if not any(cat.title == "General" for cat in existing):
             general = cat_crud.create_category(db, "General", 0)
             cat_crud.add_subcategory(db, general.id, "All Assets", "Grid", 0)
@@ -128,3 +133,5 @@ app.include_router(civitai_import.router, prefix="/api/import", tags=["Import"])
 app.include_router(civitai_test.router, prefix="/api/test", tags=["Test"])
 app.include_router(upload_routes.router, prefix="/api", tags=["Upload"])
 app.include_router(import_zip_route.router, prefix="/api", tags=["ZIP Import"])
+# Neue Asset-Typen-Route hinzufügen
+app.include_router(asset_type_routes.router, prefix="/api/asset-types", tags=["Asset Types"])

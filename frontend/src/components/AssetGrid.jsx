@@ -1,7 +1,9 @@
+// 📄 frontend/src/components/AssetGrid.jsx
+
 import { useRef } from "react";
 import { Star } from "lucide-react";
 
-export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites = false, category = null }) {
+export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites = false, category = null, layout = "masonry" }) {
   const isVideo = (path) => path?.endsWith(".webm") || path?.endsWith(".mp4");
   const isImage = (path) => path?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
@@ -44,8 +46,15 @@ export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites =
       ? assets.filter((asset) => asset.is_favorite)
       : assets;
 
+  const getGridClass = () => {
+    if (layout === "grid") return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4";
+    if (layout === "cinema") return "grid grid-cols-1 gap-y-10";
+    if (layout === "masonry") return "columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 space-y-4";
+    return "grid grid-cols-1";
+  };
+
   return (
-    <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 space-y-4 px-2">
+    <div className={`${getGridClass()} px-2 transition-all duration-300`}>
       {filteredAssets.map((asset) => {
         const previewPath = getPreviewPath(asset);
         const fullPath = previewPath ? `http://localhost:8000${previewPath}` : null;
@@ -54,7 +63,7 @@ export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites =
           <div
             key={asset.id}
             onClick={() => onSelect(asset)}
-            className="break-inside-avoid relative group cursor-pointer bg-box rounded-lg shadow hover:shadow-xl transition overflow-hidden border border-[#2f2f2f]"
+            className={`relative group cursor-pointer bg-box rounded-lg shadow hover:shadow-xl transition overflow-hidden border border-[#2f2f2f] ${layout === 'grid' ? 'flex flex-col' : 'break-inside-avoid'}`}
           >
             <button
               onClick={(e) => {
@@ -75,13 +84,20 @@ export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites =
               <img
                 src={fullPath || "/fallback.jpg"}
                 alt={asset.name}
-                className="w-full object-contain border-b border-[#2f2f2f] bg-black"
+                className={`w-full object-cover border-b border-[#2f2f2f] bg-black ${layout === 'grid' ? 'aspect-[9/16]' : ''}`}
               />
             )}
 
-            <div className="p-3">
-              <h3 className="text-primary text-base font-semibold mb-1">{asset.name}</h3>
-              <p className="text-sm text-text opacity-70">{asset.type}</p>
+            <div className="bg-[#101010] text-[#e2f263] p-3 flex flex-col justify-between flex-1">
+              <h3 className="text-base font-semibold whitespace-normal break-words leading-snug mb-2">
+                {asset.name}
+              </h3>
+              <div className="mt-auto">
+                <p className="text-sm opacity-70 flex justify-between">
+                  <span>{asset.type}</span>
+                  <span className="ml-2">{asset.base_model}</span>
+                </p>
+              </div>
             </div>
           </div>
         );
@@ -115,7 +131,7 @@ function VideoHoverPreview({ src }) {
       playsInline
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="w-full object-contain border-b border-[#2f2f2f] bg-black"
+      className="w-full aspect-[9/16] object-cover border-b border-[#2f2f2f] bg-black"
     />
   );
 }

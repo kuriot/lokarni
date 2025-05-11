@@ -25,6 +25,7 @@ class Asset(Base):
     # 🔄 Erweiterte Metadaten von CivitAI
     slug = Column(String, default="")
     creator = Column(String, default="")
+    creator_url = Column(String, default="")
     base_model = Column(String, default="")
     created_at = Column(String, default="")
     nsfw_level = Column(String, default="")

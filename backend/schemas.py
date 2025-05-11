@@ -84,6 +84,7 @@ class AssetUpdate(BaseModel):
         from_attributes = True
 
 # 🔸 Subkategorie (Basis)
+    used_resources: Optional[str] = None
 class SubCategoryBase(BaseModel):
     name: str
     icon: str

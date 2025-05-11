@@ -7,6 +7,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from .. import database, models
 
+import re
+def sanitize_filename(filename):
+    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
+
+
 router = APIRouter()
 
 class CivitaiImportRequest(BaseModel):
@@ -14,7 +19,7 @@ class CivitaiImportRequest(BaseModel):
     api_key: str | None = None
 
 def download_file(url, save_path):
-    response = requests.get(url)
+    response = requests.get(url, timeout=15)
     if response.status_code == 200:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "wb") as f:
@@ -27,7 +32,7 @@ def resolve_model_id_from_slug(slug_or_id: str, headers: dict) -> int:
         return int(slug_or_id)
 
     search_url = f"https://civitai.com/api/v1/models?query={slug_or_id}&nsfw=true"
-    search_response = requests.get(search_url, headers=headers)
+    search_response = requests.get(search_url, headers=headers, timeout=15)
     search_response.raise_for_status()
     results = search_response.json().get("items", [])
     match = next((item for item in results if item.get("slug") == slug_or_id), None)
@@ -49,7 +54,7 @@ def import_from_civitai(data: CivitaiImportRequest, request: Request, db: Sessio
         identifier = civitai_url.strip("/").split("/")[-1]
         model_id = resolve_model_id_from_slug(identifier, headers)
         api_url = f"https://civitai.com/api/v1/models/{model_id}?nsfw=true"
-        response = requests.get(api_url, headers=headers)
+        response = requests.get(api_url, headers=headers, timeout=15)
         response.raise_for_status()
         model_data = response.json()
     except Exception as e:
@@ -79,7 +84,8 @@ def import_from_civitai(data: CivitaiImportRequest, request: Request, db: Sessio
             ext = os.path.splitext(img_url.split("?")[0])[-1].lower()
             if not ext.startswith("."):
                 ext = ".jpg"
-            img_name = f"{slug or name.replace(' ', '_').lower()}_{idx}{ext}"
+            img_name_raw = f"{slug or name.replace(' ', '_').lower()}_{idx}{ext}"
+            img_name = sanitize_filename(img_name_raw)
             img_path = os.path.join("import", "images", model_type, img_name)
             if download_file(img_url, img_path):
                 media_files.append("/" + img_path.replace("\\", "/"))
@@ -137,7 +143,7 @@ def import_single_image_internal(image_id: int, request: Request, db: Session):
 
     try:
         image_url = f"https://civitai.com/api/v1/images/{image_id}"
-        response = requests.get(image_url, headers=headers)
+        response = requests.get(image_url, headers=headers, timeout=15)
         response.raise_for_status()
         data = response.json()
     except Exception as e:
@@ -180,3 +186,41 @@ def import_single_image_internal(image_id: int, request: Request, db: Session):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fehler beim Verarbeiten des Bildes: {e}")
+
+@router.get("/civitai/search")
+def search_models(query: str, api_key: str = None, limit: int = 100, page: int = 1, sort: str = None):
+    print(f"[Lokarni API] Suche empfangen: query='{query}', limit={limit}, page={page}, sort={sort}")
+
+    headers = {"User-Agent": "Lokarni-Importer/1.0"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        # Stelle sicher, dass die Seitenzahl korrekt an CivitAI übergeben wird
+        url = f"https://civitai.com/api/v1/models?query={query}&nsfw=true&limit={limit}&page={page}"
+        if sort:
+            url += f"&sort={sort}"
+            
+        print(f"[Lokarni API] Anfrage an CivitAI: {url}")
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Optional: Deduplizierung der Ergebnisse auf Serverseite
+        if "items" in data and isinstance(data["items"], list):
+            seen_ids = set()
+            unique_items = []
+            
+            for item in data["items"]:
+                if "id" in item and item["id"] not in seen_ids:
+                    seen_ids.add(item["id"])
+                    unique_items.append(item)
+            
+            # Wenn Deduplizierung aktiv ist, ersetze die Items durch die einzigartigen Items
+            if len(unique_items) < len(data["items"]):
+                print(f"[Lokarni API] Deduplizierung: {len(data['items'])} -> {len(unique_items)} Ergebnisse")
+                data["items"] = unique_items
+                
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fehler bei der CivitAI-Abfrage: {e}")
