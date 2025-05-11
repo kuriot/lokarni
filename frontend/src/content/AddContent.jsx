@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AddFromCivitai from "../components/AddFromCivitai";
 import AddManualForm from "../components/AddManualForm";
+import AddFromCivitaiSearch from "../components/AddFromCivitaiSearch";
 
 export default function AddContent({ onImportSuccess }) {
   const [activeTab, setActiveTab] = useState("manual");
@@ -8,6 +9,7 @@ export default function AddContent({ onImportSuccess }) {
   const tabs = [
     { key: "manual", label: "📝 Manuell" },
     { key: "civitai", label: "🌐 CivitAI-Link" },
+    { key: "civitai-search", label: "🔎 CivitAI-Search" },
   ];
 
   return (
@@ -48,6 +50,10 @@ export default function AddContent({ onImportSuccess }) {
             </p>
             <AddFromCivitai onImportSuccess={onImportSuccess} />
           </div>
+        )}
+
+        {activeTab === "civitai-search" && (
+          <AddFromCivitaiSearch onImportSuccess={onImportSuccess} />
         )}
       </div>
     </div>

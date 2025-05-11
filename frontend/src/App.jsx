@@ -1,7 +1,10 @@
+// 📄 frontend/src/App.jsx
+
 import { useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import AssetGrid from "./components/AssetGrid";
 import AssetModal from "./components/AssetModal";
+import { LayoutGrid, LayoutPanelTop } from "lucide-react";
 
 import AddContent from "./content/AddContent";
 import ManageContent from "./content/ManageContent";
@@ -12,6 +15,9 @@ export default function App() {
   const [category, setCategory] = useState("All");
   const [assets, setAssets] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [layout, setLayout] = useState(() => {
+    return localStorage.getItem("lokarni-grid-layout") || "grid";
+  });
 
   const fetchAssets = () => {
     let param = "";
@@ -44,18 +50,26 @@ export default function App() {
     }
   }, [category]);
 
+  useEffect(() => {
+    localStorage.setItem("lokarni-grid-layout", layout);
+  }, [layout]);
+
   const handleUpdate = () => {
     fetchAssets();
     setSelectedAsset(null);
+  };
+
+  const toggleLayout = () => {
+    setLayout((prev) => (prev === "grid" ? "masonry" : "grid"));
   };
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       <Sidebar onSelectCategory={setCategory} />
       <main className="flex-1 p-6 overflow-auto bg-background">
-        <header className="mb-6">
+        <header className="mb-6 flex items-center justify-between">
           <h2
-            className="font-semibold"
+            className="font-normal"
             style={{
               color: "rgb(226, 242, 99)",
               fontSize: "22px",
@@ -64,6 +78,17 @@ export default function App() {
           >
             {category}
           </h2>
+          <button
+            onClick={toggleLayout}
+            className="border border-[#e2f263] text-[#e2f263] rounded-lg p-2 hover:bg-[#e2f26320] transition"
+            title="Change layout"
+          >
+            {layout === "grid" ? (
+              <LayoutPanelTop className="w-5 h-5" />
+            ) : (
+              <LayoutGrid className="w-5 h-5" />
+            )}
+          </button>
         </header>
 
         {category === "Add" && <AddContent />}
@@ -78,6 +103,8 @@ export default function App() {
               setAssets={setAssets}
               onSelect={setSelectedAsset}
               onlyFavorites={category === "Favoriten"}
+              category={category}
+              layout={layout}
             />
             {selectedAsset && (
               <AssetModal

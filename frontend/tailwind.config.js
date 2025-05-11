@@ -1,23 +1,27 @@
+// 📄 frontend/tailwind.config.js
+
+const { fontFamily } = require("tailwindcss/defaultTheme")
+
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
+  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {
-		dropShadow: {
-			glow: '0 0 8px #e2f263',
-			},
-		colors: {
-			primary: '#e2f263',
-			background: '#212226',
-			accent: '#e85c4c',
-			text: '#ffffff',
-			box: '#2a2b2e',
-			boxDark: '#1a1a1c',
-			},
-		},
-	},
-  plugins: [],
-}
+      fontFamily: {
+        sans: ["Inter", ...fontFamily.sans],
+      },
+      colors: {
+        primary: "rgb(226, 242, 99)",
+        border: "#2a2a2a",
+        background: "#0e0e0e",
+        text: "#f5f5f5",
+        foreground: "#f5f5f5",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+} 

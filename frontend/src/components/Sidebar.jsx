@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
-import { Github, Coffee, MessageCircle } from "lucide-react";
+import { Github, Coffee, MessageCircle, Plus } from "lucide-react";
 import axios from "axios";
-import { ReactComponent as Logo } from "../assets/logo.svg";
+import Logo from "../assets/logo.svg";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function Sidebar({ onSelectCategory }) {
   const [active, setActive] = useState("All Assets");
   const [groups, setGroups] = useState([]);
 
   const specialViews = {
-    Add: LucideIcons.Plus,
     Manage: LucideIcons.FolderCog,
     Settings: LucideIcons.Settings,
     Search: LucideIcons.Search,
@@ -48,8 +49,7 @@ export default function Sidebar({ onSelectCategory }) {
   }, []);
 
   useEffect(() => {
-    if (!["Add", "Manage", "Settings"].includes(active)) return;
-    loadCategories();
+    if (["Manage", "Settings"].includes(active)) loadCategories();
   }, [active]);
 
   const openGroup = groups.find((group) =>
@@ -61,42 +61,60 @@ export default function Sidebar({ onSelectCategory }) {
       <div>
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-6 group">
-          <Logo className="w-12 h-12 text-primary drop-shadow-glow transition-transform group-hover:scale-110" />
+          <img src={Logo} alt="Logo" className="w-12 h-12 drop-shadow-glow transition-transform group-hover:scale-110" />
           <h2 className="text-3xl font-bold text-primary drop-shadow-glow text-center">Lokarni</h2>
         </div>
 
         {/* Actions */}
-        <div className="bg-background border border-box text-primary rounded-md p-3 mb-8 flex justify-between items-center text-xs">
-          {Object.entries(specialViews).map(([key, Icon]) => (
-            <div
-              key={key}
-              onClick={() => {
-                setActive(key);
-                onSelectCategory(key);
-              }}
-              className={`relative group cursor-pointer transition ${
-                active === key ? "text-background" : "text-primary"
-              }`}
+        <div className="bg-background border border-primary text-primary rounded-md p-3 mb-8 flex justify-between items-center text-xs">
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="relative group"
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onSelectCategory("Add")}
+              className={`text-primary hover:bg-border hover:text-foreground p-2 rounded-full transition`}
             >
-              <div
-                className={`p-2 rounded-full transition ${
-                  active === key
-                    ? "bg-primary"
-                    : "hover:bg-primary hover:text-background"
+              <Plus className="w-5 h-5" />
+            </Button>
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-box text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 whitespace-nowrap">
+              Add new
+            </span>
+          </motion.div>
+
+          {Object.entries(specialViews).map(([key, Icon]) => (
+            <motion.div
+              key={key}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="relative group"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setActive(key);
+                  onSelectCategory(key);
+                }}
+                className={`p-2 rounded-full transition text-primary hover:bg-border hover:text-foreground ${
+                  active === key ? "bg-primary text-background" : ""
                 }`}
               >
                 <Icon size={18} />
-              </div>
+              </Button>
               <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-box text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 whitespace-nowrap">
-                {key === "Add"
-                  ? "Add new"
-                  : key === "Manage"
+                {key === "Manage"
                   ? "Verwalten"
                   : key === "Settings"
                   ? "Einstellungen"
                   : "Suchen"}
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -149,18 +167,18 @@ export default function Sidebar({ onSelectCategory }) {
       </div>
 
       {/* Footer */}
-      <div className="mt-6 pt-4 border-t border-box">
-        <div className="bg-box p-4 rounded-md text-sm font-medium text-primary space-y-2">
-          <a href="https://github.com/Pixel-Arni" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-text transition">
+      <div className="mt-6 pt-4 border-t border-primary">
+        <div className="bg-background/50 p-4 rounded-lg text-sm font-medium text-primary space-y-2 shadow-inner border border-border">
+          <a href="https://github.com/Pixel-Arni" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
             <Github size={16} /> Git
           </a>
-          <a href="https://ko-fi.com/cranic" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary transition">
+          <a href="https://ko-fi.com/cranic" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
             <Coffee size={16} /> Support me
           </a>
-          <a href="https://discord.gg/Y42PRC3ffp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary transition">
+          <a href="https://discord.gg/Y42PRC3ffp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
             <MessageCircle size={16} /> Discord
           </a>
-          <hr className="border-t border-gray-700 my-2" />
+          <hr className="border-t border-border my-2 opacity-50" />
           <p className="text-xs text-gray-400 text-center">
             Special thanks to{" "}
             <a href="https://civitai.com/user/Astroburner" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline transition">
@@ -168,7 +186,7 @@ export default function Sidebar({ onSelectCategory }) {
             </a>
           </p>
         </div>
-        <p className="mt-2 text-center text-xs text-gray-500">
+        <p className="mt-3 text-center text-[10px] text-muted-foreground">
           Built by Arni aka. Cranic
         </p>
       </div>

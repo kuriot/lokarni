@@ -10,6 +10,7 @@ import {
   StarOff,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 
 const InfoBlock = ({ label, content }) => (
@@ -19,7 +20,7 @@ const InfoBlock = ({ label, content }) => (
       <textarea
         readOnly
         value={content || ""}
-        className="w-full bg-box border border-box rounded p-2 pr-10 text-text resize-none text-sm min-h-[80px]"
+        className="w-full bg-background border border-box rounded p-2 pr-10 text-text resize-none text-sm min-h-[80px]"
       />
       <button
         onClick={() => navigator.clipboard.writeText(content)}
@@ -39,7 +40,7 @@ const EditableTextarea = ({ label, value, onChange }) => (
       value={value}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-box border border-box rounded p-2 text-text text-sm min-h-[80px]"
+      className="w-full bg-background border border-box rounded p-2 text-text text-sm min-h-[80px] placeholder:text-muted"
     />
   </div>
 );
@@ -52,7 +53,7 @@ const EditableField = ({ label, value, onChange }) => (
       value={value}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-box border border-box rounded px-2 py-1 text-text text-sm"
+      className="w-full bg-background border border-box rounded px-2 py-1 text-text text-sm placeholder:text-muted"
     />
   </div>
 );
@@ -75,6 +76,9 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
   const [editTrigger, setEditTrigger] = useState(asset.trigger_words || "");
   const [editPositive, setEditPositive] = useState(asset.positive_prompt || "");
   const [editNegative, setEditNegative] = useState(asset.negative_prompt || "");
+  const [editDownload, setEditDownload] = useState(asset.download_url || "");
+  const [editResources, setEditResources] = useState(asset.used_resources || "");
+  const [editPath, setEditPath] = useState(asset.path || "");
 
   const IMAGE_BASE_URL = "http://localhost:8000";
   const mediaFiles = asset.media_files || [];
@@ -103,12 +107,29 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
           trigger_words: editTrigger,
           positive_prompt: editPositive,
           negative_prompt: editNegative,
+          download_url: editDownload,
+          used_resources: editResources,
+          path: editPath,
         }),
       });
-
       if (!response.ok) throw new Error("Fehler beim Speichern");
       setIsEditing(false);
-      if (onUpdate) onUpdate();
+      asset.name = editName;
+      asset.tags = editTags;
+      asset.description = editDescription;
+      asset.type = editType;
+      asset.model_version = editVersion;
+      asset.base_model = editBaseModel;
+      asset.creator = editCreator;
+      asset.nsfw_level = editNSFW;
+      asset.trigger_words = editTrigger;
+      asset.positive_prompt = editPositive;
+      asset.negative_prompt = editNegative;
+      asset.download_url = editDownload;
+      asset.used_resources = editResources;
+      asset.path = editPath;
+      if (onUpdate) await onUpdate();
+      onClose();
     } catch (err) {
       console.error(err);
       alert("Speichern fehlgeschlagen");
@@ -116,7 +137,6 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
       setSaving(false);
     }
   };
-
   const handleDelete = async () => {
     if (!window.confirm("Willst du dieses Asset wirklich löschen?")) return;
     try {
@@ -124,7 +144,7 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Fehler beim Löschen");
-      if (onUpdate) onUpdate();
+      if (onUpdate) await onUpdate();
       onClose();
     } catch (err) {
       console.error(err);
@@ -138,34 +158,46 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
         method: "PATCH",
       });
       if (!response.ok) throw new Error("Fehler beim Favoritenwechsel");
-      if (onUpdate) onUpdate();
+      if (onUpdate) await onUpdate();
     } catch (err) {
       console.error(err);
       alert("Favoritenwechsel fehlgeschlagen.");
     }
   };
 
+  const shouldShow = (field) => isEditing || (field && field.trim() !== "");
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50" onClick={onClose}>
         <div
           onClick={(e) => e.stopPropagation()}
-          className="bg-background text-text rounded-lg shadow-lg w-11/12 max-w-6xl p-8 max-h-[95vh] overflow-auto"
+          className="bg-background text-text rounded-lg shadow-lg w-11/12 max-w-6x2 p-0 h-[90vh] overflow-hidden"
         >
           <div className="flex flex-col md:flex-row gap-8">
-            {/* Slideshow + Navigation */}
-            <div className="relative w-full md:w-1/2 h-auto max-h-[75vh] flex items-center justify-center overflow-hidden rounded-lg border border-box">
+            <div className="relative w-full md:w-1/2 h-full max-h-[90vh] flex items-center justify-center overflow-hidden">
               {isVideo ? (
-                <>
-                  <video src={previewPath} muted loop playsInline autoPlay className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30" />
-                  <video src={previewPath} muted loop playsInline autoPlay className="relative z-10 max-h-[75vh]" />
-                </>
-              ) : (
-                <>
-                  <img src={previewPath} alt="" className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30" />
-                  <img src={previewPath} alt="Vorschau" className="relative z-10 object-contain max-h-[75vh]" />
-                </>
-              )}
+  <>
+    <video src={previewPath} muted loop playsInline autoPlay className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30" />
+    <video src={previewPath} muted loop playsInline autoPlay className="relative z-10 max-h-full object-contain" />
+  </>
+) : (
+  <div className="relative w-full h-[90vh] flex items-center justify-center overflow-hidden">
+    <img src={previewPath} alt="" className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30" />
+    <div className="relative z-10 flex items-center justify-center h-full">
+      <img
+        src={previewPath}
+        alt="Vorschau"
+        style={{
+          maxHeight: '100%',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain'
+        }}
+      />
+    </div>
+  </div>
+)}
               <button onClick={handlePrev} className="absolute left-2 top-1/2 z-20 transform -translate-y-1/2 bg-black bg-opacity-50 p-1 rounded-full">
                 <ChevronLeft size={20} />
               </button>
@@ -173,9 +205,7 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
                 <ChevronRight size={20} />
               </button>
             </div>
-
-            {/* Details / Edit Section */}
-            <div className="flex-1 space-y-5 text-sm">
+            <div className="flex-1 space-y-5 text-sm overflow-y-auto max-h-[90vh] p-8">
               <div className="flex justify-end gap-3 mb-2">
                 <button onClick={handleToggleFavorite} className={`bg-box border border-box rounded-full p-2 ${asset.is_favorite ? "text-yellow-400" : "text-zinc-500"} hover:text-accent`} title={asset.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}>
                   {asset.is_favorite ? <StarOff size={20} /> : <Star size={20} />}
@@ -193,7 +223,7 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
 
               <div className="text-xl font-bold text-primary">
                 {isEditing ? (
-                  <input value={editName} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditName(e.target.value)} className="bg-box border border-box rounded px-2 py-1 text-text w-full text-lg" />
+                  <input value={editName} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditName(e.target.value)} className="bg-background border border-box rounded px-2 py-1 text-text w-full text-lg" />
                 ) : (
                   asset.name
                 )}
@@ -213,29 +243,31 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
 
               <p><strong>Typ:</strong> <span className="text-primary">{asset.type}</span></p>
 
-              {asset.used_resources && (
-                <div>
-                  <label className="block text-sm font-semibold text-primary mb-1">Verwendete Ressourcen:</label>
-                  <ul className="list-disc list-inside text-gray-300 text-sm space-y-1">
-                    {asset.used_resources.split(",").map((res, idx) => <li key={idx}>{res.trim()}</li>)}
-                  </ul>
-                </div>
+              {shouldShow(asset.used_resources) && (
+                isEditing ? (
+                  <EditableTextarea label="Verwendete Ressourcen" value={editResources} onChange={setEditResources} />
+                ) : (
+                  <InfoBlock label="Verwendete Ressourcen" content={asset.used_resources} />
+                )
               )}
 
-              {isEditing ? (
-                <>
-                  <EditableTextarea label="Trigger Words" value={editTrigger} onChange={setEditTrigger} />
-                  <EditableTextarea label="Positive Prompt" value={editPositive} onChange={setEditPositive} />
-                  <EditableTextarea label="Negative Prompt" value={editNegative} onChange={setEditNegative} />
-                </>
+              {shouldShow(asset.trigger_words) && (isEditing ? (
+                <EditableTextarea label="Trigger Words" value={editTrigger} onChange={setEditTrigger} />
               ) : (
-                <>
-                  <InfoBlock label="Trigger Words" content={asset.trigger_words} />
-                  <InfoBlock label="Positive Prompt" content={asset.positive_prompt} />
-                  <InfoBlock label="Negative Prompt" content={asset.negative_prompt} />
-                </>
-              )}
+                <InfoBlock label="Trigger Words" content={asset.trigger_words} />
+              ))}
 
+              {shouldShow(asset.positive_prompt) && (isEditing ? (
+                <EditableTextarea label="Positive Prompt" value={editPositive} onChange={setEditPositive} />
+              ) : (
+                <InfoBlock label="Positive Prompt" content={asset.positive_prompt} />
+              ))}
+
+              {shouldShow(asset.negative_prompt) && (isEditing ? (
+                <EditableTextarea label="Negative Prompt" value={editNegative} onChange={setEditNegative} />
+              ) : (
+                <InfoBlock label="Negative Prompt" content={asset.negative_prompt} />
+              ))}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                 {isEditing ? (
                   <>
@@ -254,45 +286,46 @@ export default function AssetModal({ asset, onClose, onUpdate }) {
                 )}
               </div>
 
-              {asset.download_url && (
-                <p><strong>Download URL:</strong> <a href={asset.download_url} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">{asset.download_url}</a></p>
+              {shouldShow(editPath) && (
+                isEditing ? (
+                  <EditableField label="Pfad" value={editPath} onChange={setEditPath} />
+                ) : (
+                  <InfoBlock label="Pfad" content={asset.path} />
+                )
+              )}
+
+              {shouldShow(editDownload) && (isEditing ? (
+                <EditableField label="Download URL / Pfad" value={editDownload} onChange={setEditDownload} />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <a href={asset.download_url} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all flex-1">{asset.download_url}</a>
+                  <a href={asset.download_url} download className="text-primary hover:text-accent" title="Herunterladen">
+                    <Download size={18} />
+                  </a>
+                </div>
+              ))}
+
+              {shouldShow(asset.description) && (
+                <div className="mt-8 w-full max-w-5xl mx-auto text-sm text-gray-300">
+                  <h3 className="text-primary font-semibold mb-2">Beschreibung</h3>
+                  {isEditing ? (
+                    <textarea value={editDescription} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-background border border-box rounded p-2 text-text text-sm min-h-[150px]" />
+                  ) : (
+                    <div className="prose prose-invert max-w-none transition-all duration-300" style={{ overflow: expanded ? "visible" : "hidden", maxHeight: expanded ? "none" : "180px" }}>
+                      <div dangerouslySetInnerHTML={{ __html: asset.description }} style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "break-word" }} />
+                    </div>
+                  )}
+                  {!isEditing && (
+                    <button className="mt-2 text-primary hover:text-accent text-xs" onClick={() => setExpanded(!expanded)}>
+                      {expanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
-
-          {asset.description && (
-            <div className="mt-8 w-full max-w-5xl mx-auto text-sm text-gray-300">
-              <h3 className="text-primary font-semibold mb-2">Beschreibung</h3>
-              {isEditing ? (
-                <textarea value={editDescription} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-box border border-box rounded p-2 text-text text-sm min-h-[150px]" />
-              ) : (
-                <div className="prose prose-invert max-w-none transition-all duration-300" style={{ overflow: expanded ? "visible" : "hidden", maxHeight: expanded ? "none" : "180px" }}>
-                  <div dangerouslySetInnerHTML={{ __html: asset.description }} style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "break-word" }} />
-                </div>
-              )}
-              {!isEditing && (
-                <button className="mt-2 text-primary hover:text-accent text-xs" onClick={() => setExpanded(!expanded)}>
-                  {expanded ? "Weniger anzeigen" : "Mehr anzeigen"}
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Vollbild-Modus */}
-      {showFull && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center" onClick={() => setShowFull(false)}>
-          {isVideo ? (
-            <video src={previewPath} controls autoPlay loop className="max-h-[95vh] max-w-[95vw] object-contain rounded shadow-lg" />
-          ) : (
-            <img src={previewPath} alt="Vollbild" className="max-h-[95vh] max-w-[95vw] object-contain rounded shadow-lg" />
-          )}
-          <button onClick={(e) => { e.stopPropagation(); setShowFull(false); }} className="absolute top-4 right-4 text-text hover:text-accent border border-box rounded-full p-2" title="Schließen">
-            <X size={24} />
-          </button>
-        </div>
-      )}
     </>
   );
 }
