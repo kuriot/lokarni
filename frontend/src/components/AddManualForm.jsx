@@ -1,4 +1,16 @@
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Loader2, Save, Upload, Link, Image, FileText, MessageSquare, Settings2, 
+  Tag, Plus, X, CheckCircle, XCircle, FolderOpen, Calendar, User, 
+  Globe, Download, Shield, Camera, AlertCircle 
+} from "lucide-react";
 
 export default function AddManualForm({ onSave }) {
   const [formData, setFormData] = useState({
@@ -28,12 +40,10 @@ export default function AddManualForm({ onSave }) {
   const [availableTypes, setAvailableTypes] = useState([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(false);
   
-  // States for adding new types
   const [newTypeInput, setNewTypeInput] = useState("");
   const [isAddingType, setIsAddingType] = useState(false);
   const [isSubmittingType, setIsSubmittingType] = useState(false);
 
-  // Load available types from database when component mounts
   useEffect(() => {
     fetchAvailableTypes();
   }, []);
@@ -41,7 +51,6 @@ export default function AddManualForm({ onSave }) {
   const fetchAvailableTypes = async () => {
     setIsLoadingTypes(true);
     try {
-      // Make API call to your backend to get available types
       const response = await fetch("http://localhost:8000/api/asset-types");
       
       if (response.ok) {
@@ -49,7 +58,6 @@ export default function AddManualForm({ onSave }) {
         setAvailableTypes(data);
       } else {
         console.error("Failed to load asset types");
-        // Fallback to default types if API call fails
         setAvailableTypes([
           "Checkpoint", "LoRA", "Embedding", "Controlnet", 
           "Poses", "Wildcards", "LyCORIS", "Hypernetwork", "Other"
@@ -57,7 +65,6 @@ export default function AddManualForm({ onSave }) {
       }
     } catch (error) {
       console.error("Error fetching asset types:", error);
-      // Fallback to default types if API call fails
       setAvailableTypes([
         "Checkpoint", "LoRA", "Embedding", "Controlnet", 
         "Poses", "Wildcards", "LyCORIS", "Hypernetwork", "Other"
@@ -67,7 +74,6 @@ export default function AddManualForm({ onSave }) {
     }
   };
 
-  // Function to add a new type
   const handleAddType = async () => {
     if (!newTypeInput.trim()) return;
     
@@ -115,7 +121,6 @@ export default function AddManualForm({ onSave }) {
       const updated = [...prev];
       updated[index] = value;
       
-      // If we're editing the last input and it has content, add a new empty input
       if (index === updated.length - 1 && value.trim()) {
         updated.push("");
       }
@@ -124,10 +129,8 @@ export default function AddManualForm({ onSave }) {
     });
   };
 
-  // Remove a URL input field
   const removeUrlInput = (index) => {
     setUrlInputs(prev => {
-      // Don't remove if it's the last empty one
       if (prev.length === 1 && !prev[0]) {
         return prev;
       }
@@ -135,7 +138,6 @@ export default function AddManualForm({ onSave }) {
       const updated = [...prev];
       updated.splice(index, 1);
       
-      // Ensure we always have at least one field
       if (updated.length === 0) {
         updated.push("");
       }
@@ -150,7 +152,6 @@ export default function AddManualForm({ onSave }) {
     setFormError("");
     setFormSuccess("");
 
-    // Validate required fields
     if (!formData.name || !formData.type) {
       setFormError("Name and type are required");
       setIsSubmitting(false);
@@ -161,7 +162,6 @@ export default function AddManualForm({ onSave }) {
     let preview_image_path = "";
 
     try {
-      // Local file uploads
       for (let i = 0; i < mediaFiles.length; i++) {
         const mediaData = new FormData();
         mediaData.append("file", mediaFiles[i]);
@@ -181,7 +181,6 @@ export default function AddManualForm({ onSave }) {
         }
       }
 
-      // URL uploads - only process non-empty URLs
       for (let i = 0; i < urlInputs.length; i++) {
         const url = urlInputs[i].trim();
         if (url) {
@@ -218,7 +217,6 @@ export default function AddManualForm({ onSave }) {
         const asset = await response.json();
         if (onSave) onSave(asset);
         
-        // Reset form
         setFormData({
           name: "",
           type: "",
@@ -240,6 +238,10 @@ export default function AddManualForm({ onSave }) {
         setPreviewUrls([]);
         setUrlInputs([""]);
         setFormSuccess("Asset saved successfully!");
+        
+        setTimeout(() => {
+          setFormSuccess("");
+        }, 3000);
       } else {
         throw new Error("Error saving asset");
       }
@@ -258,317 +260,338 @@ export default function AddManualForm({ onSave }) {
   };
 
   return (
-    <div className="bg-zinc-950 rounded-lg shadow-lg overflow-hidden">
-      <div className="p-6 border-b border-zinc-800 bg-gradient-to-r from-zinc-900 to-zinc-800">
-        <h2 className="text-2xl font-bold text-primary">Add New Asset</h2>
-        <p className="text-zinc-400 mt-1">Create a new entry with detailed information and media</p>
+    <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Add New Asset</h1>
+        <p className="text-zinc-400">Create a new entry with detailed information and media</p>
       </div>
 
       {(formError || formSuccess) && (
-        <div className={`mx-6 mt-4 p-4 rounded ${formError ? 'bg-red-900/30 border border-red-700' : 'bg-green-900/30 border border-green-700'}`}>
-          <p className={`text-sm ${formError ? 'text-red-400' : 'text-green-400'}`}>
-            {formError || formSuccess}
-          </p>
-        </div>
+        <Alert
+          className={`mb-6 ${
+            formError 
+              ? "border-red-900 bg-red-950/50" 
+              : "border-green-900 bg-green-950/50"
+          }`}
+        >
+          {formError ? (
+            <XCircle className="h-4 w-4" />
+          ) : (
+            <CheckCircle className="h-4 w-4" />
+          )}
+          <AlertDescription>{formError || formSuccess}</AlertDescription>
+        </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Media upload section - Full width on mobile, 1/3 on desktop */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
-              <div className="bg-zinc-800 p-4 border-b border-zinc-700">
-                <h3 className="text-primary font-bold flex items-center">
-                  <span className="mr-2">📷</span> Media Files
-                </h3>
-              </div>
-              <div className="p-4 space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Media upload section */}
+          <div className="xl:col-span-1">
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="w-5 h-5" />
+                  Media Files
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 {/* Local file upload */}
                 <div>
-                  <label className="block text-sm text-white font-medium mb-2">Upload Images/Videos</label>
-                  <div className={`border-2 border-dashed border-zinc-700 rounded-lg p-4 text-center hover:border-primary transition-colors ${mediaFiles.length > 0 ? 'bg-zinc-800' : 'bg-zinc-900'}`}>
+                  <label className="text-sm text-zinc-400 mb-2 block">Upload Images/Videos</label>
+                  <div className="border-2 border-dashed border-zinc-700 rounded-lg p-4 hover:border-zinc-600 transition-colors">
                     {previewUrls.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2 mb-3">
-                        {previewUrls.map((url, idx) =>
-                          mediaFiles[idx]?.type?.startsWith("video/") ? (
-                            <video key={idx} src={url} controls className="w-full h-32 object-cover rounded border border-zinc-700" />
-                          ) : (
-                            <img key={idx} src={url} alt="Preview" className="w-full h-32 object-cover rounded border border-zinc-700" />
-                          )
-                        )}
+                        {previewUrls.map((url, idx) => (
+                          <div key={idx} className="relative group">
+                            {mediaFiles[idx]?.type?.startsWith("video/") ? (
+                              <video 
+                                src={url} 
+                                controls 
+                                className="w-full h-24 object-cover rounded border border-zinc-700" 
+                              />
+                            ) : (
+                              <img 
+                                src={url} 
+                                alt="Preview" 
+                                className="w-full h-24 object-cover rounded border border-zinc-700" 
+                              />
+                            )}
+                          </div>
+                        ))}
                       </div>
                     ) : (
-                      <div className="py-6">
-                        <svg className="mx-auto h-12 w-12 text-zinc-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H8m36-12h-4m4 0H20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                      <div className="text-center py-6">
+                        <Upload className="mx-auto h-12 w-12 text-zinc-500" />
                         <p className="mt-2 text-sm text-zinc-400">
-                          Drag and drop files, or click to select
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          Images or videos supported
                         </p>
                       </div>
                     )}
-                    <input
-                      id="file-upload"
+                    <Input
                       type="file"
                       accept="image/*,video/*"
                       multiple
                       onChange={handleMediaUpload}
-                      className="w-full text-sm text-zinc-400 file:bg-primary file:text-zinc-900 file:font-medium file:border-none file:px-4 file:py-2 file:rounded file:mr-4 file:hover:bg-yellow-400 file:transition-colors"
+                      className="cursor-pointer"
                     />
                   </div>
                 </div>
 
                 {/* URL inputs */}
                 <div>
-                  <label className="block text-sm text-white font-medium mb-2">Media URLs</label>
+                  <label className="text-sm text-zinc-400 mb-2 block flex items-center gap-2">
+                    <Link className="w-4 h-4" />
+                    Media URLs
+                  </label>
                   <div className="space-y-2">
                     {urlInputs.map((url, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <input
+                        <Input
                           type="text"
-                          placeholder={`https://example.com/media-${index + 1}.jpg`}
+                          placeholder={`https://example.com/image-${index + 1}.jpg`}
                           value={url}
                           onChange={(e) => handleUrlInputChange(index, e.target.value)}
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm placeholder:text-zinc-500 focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                          className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
                         />
-                        {/* Show remove button for all but the last field */}
                         {(index < urlInputs.length - 1 || (urlInputs.length > 1 && url.trim())) && (
-                          <button
+                          <Button
                             type="button"
                             onClick={() => removeUrlInput(index)}
-                            className="p-2 bg-red-900 hover:bg-red-800 text-white rounded-md text-sm transition-colors"
-                            aria-label="Remove URL"
+                            size="sm"
+                            variant="destructive"
+                            className="p-2"
                           >
-                            ✕
-                          </button>
+                            <X className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
                     ))}
-                    <p className="text-xs text-zinc-500 italic mt-1">
+                    <p className="text-xs text-zinc-500 italic">
                       Type in the last field to add another URL
                     </p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Form fields - Full width on mobile, 2/3 on desktop */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Form fields */}
+          <div className="xl:col-span-3 space-y-6">
             {/* Basic information */}
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
-              <div className="bg-zinc-800 p-4 border-b border-zinc-700">
-                <h3 className="text-primary font-bold flex items-center">
-                  <span className="mr-2">📋</span> Basic Information
-                </h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fieldGroups.basic.map((field) => (
-                  <div key={field} className="space-y-1">
-                    <label className="block text-sm font-medium text-zinc-300 capitalize">
-                      {field.replace(/_/g, " ")}
-                      {field === "name" || field === "type" ? (
-                        <span className="text-red-400 ml-1">*</span>
-                      ) : null}
-                    </label>
-                    {field === "description" ? (
-                      <textarea
-                        name={field}
-                        value={formData[field]}
-                        onChange={handleChange}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary resize-none min-h-[80px]"
-                      />
-                    ) : field === "type" ? (
-                      <div>
-                        {isAddingType ? (
-                          <div className="space-y-2">
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fieldGroups.basic.map((field) => (
+                    <div key={field}>
+                      <label className="text-sm text-zinc-400 mb-2 block">
+                        {field.replace(/_/g, " ").charAt(0).toUpperCase() + field.replace(/_/g, " ").slice(1)}
+                        {(field === "name" || field === "type") && (
+                          <span className="text-red-400 ml-1">*</span>
+                        )}
+                      </label>
+                      {field === "description" ? (
+                        <Textarea
+                          name={field}
+                          value={formData[field]}
+                          onChange={handleChange}
+                          className="bg-zinc-800/50 border-zinc-700 focus:border-primary min-h-[80px]"
+                        />
+                      ) : field === "type" ? (
+                        <div>
+                          {isAddingType ? (
                             <div className="flex items-center gap-2">
-                              <input
+                              <Input
                                 type="text"
                                 value={newTypeInput}
                                 onChange={(e) => setNewTypeInput(e.target.value)}
                                 placeholder="Enter new type name"
-                                className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
                               />
-                              <button
+                              <Button
                                 type="button"
                                 onClick={handleAddType}
                                 disabled={isSubmittingType || !newTypeInput.trim()}
-                                className={`p-2 bg-primary text-zinc-900 rounded-md text-sm transition-colors flex items-center ${isSubmittingType || !newTypeInput.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-yellow-400'}`}
+                                size="sm"
                               >
                                 {isSubmittingType ? (
-                                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                   "Add"
                                 )}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 type="button"
                                 onClick={() => {
                                   setIsAddingType(false);
                                   setNewTypeInput("");
                                 }}
-                                className="p-2 bg-zinc-700 text-white rounded-md text-sm hover:bg-zinc-600 transition-colors"
+                                size="sm"
+                                variant="secondary"
                               >
                                 Cancel
-                              </button>
+                              </Button>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <select
-                              name={field}
-                              value={formData[field]}
-                              onChange={handleChange}
-                              disabled={isLoadingTypes}
-                              className={`w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary ${isLoadingTypes ? 'cursor-wait opacity-70' : ''}`}
-                            >
-                              <option value="">Select Type</option>
-                              {isLoadingTypes ? (
-                                <option value="" disabled>Loading types...</option>
-                              ) : (
-                                availableTypes.map((type, index) => (
-                                  <option key={index} value={typeof type === 'string' ? type : type.name || type.value}>
-                                    {typeof type === 'string' ? type : type.label || type.name || type.value}
+                          ) : (
+                            <div>
+                              <select
+                                name={field}
+                                value={formData[field]}
+                                onChange={handleChange}
+                                disabled={isLoadingTypes}
+                                className="w-full h-10 px-3 bg-zinc-800/50 border border-zinc-700 rounded-md text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="">Select Type</option>
+                                {availableTypes.map((type, index) => (
+                                  <option key={index} value={typeof type === 'string' ? type : type.name}>
+                                    {typeof type === 'string' ? type : type.label || type.name}
                                   </option>
-                                ))
-                              )}
-                            </select>
-                            <div className="flex justify-end">
-                              <button
+                                ))}
+                              </select>
+                              <Button
                                 type="button"
                                 onClick={() => setIsAddingType(true)}
-                                className="text-xs text-primary hover:text-yellow-400 transition-colors"
+                                variant="link"
+                                size="sm"
+                                className="text-xs text-primary hover:text-primary/80 p-0 h-auto mt-1"
                               >
-                                + Add New Type
-                              </button>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add New Type
+                              </Button>
                             </div>
-                            {isLoadingTypes && (
-                              <div className="mt-1 flex items-center">
-                                <svg className="animate-spin h-4 w-4 text-primary mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span className="text-xs text-zinc-500">Loading available types...</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <input
+                          )}
+                        </div>
+                      ) : (
+                        <Input
+                          type="text"
+                          name={field}
+                          value={formData[field]}
+                          onChange={handleChange}
+                          className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Prompt Information */}
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Prompt Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-4">
+                {fieldGroups.prompts.map((field) => (
+                  <div key={field}>
+                    <label className="text-sm text-zinc-400 mb-2 block">
+                      {field.replace(/_/g, " ").charAt(0).toUpperCase() + field.replace(/_/g, " ").slice(1)}
+                    </label>
+                    <Textarea
+                      name={field}
+                      value={formData[field]}
+                      onChange={handleChange}
+                      className="bg-zinc-800/50 border-zinc-700 focus:border-primary min-h-[80px]"
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Technical Details */}
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="w-5 h-5" />
+                  Technical Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fieldGroups.technical.map((field) => (
+                    <div key={field}>
+                      <label className="text-sm text-zinc-400 mb-2 block flex items-center gap-2">
+                        {field === "created_at" && <Calendar className="w-3 h-3" />}
+                        {field === "nsfw_level" && <Shield className="w-3 h-3" />}
+                        {field.replace(/_/g, " ").charAt(0).toUpperCase() + field.replace(/_/g, " ").slice(1)}
+                      </label>
+                      <Input
+                        type={field === "created_at" ? "date" : "text"}
+                        name={field}
+                        value={formData[field]}
+                        onChange={handleChange}
+                        className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Metadata */}
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="w-5 h-5" />
+                  Metadata
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fieldGroups.meta.map((field) => (
+                    <div key={field}>
+                      <label className="text-sm text-zinc-400 mb-2 block flex items-center gap-2">
+                        {field === "creator" && <User className="w-3 h-3" />}
+                        {field === "slug" && <Globe className="w-3 h-3" />}
+                        {field === "download_url" && <Download className="w-3 h-3" />}
+                        {field.replace(/_/g, " ").charAt(0).toUpperCase() + field.replace(/_/g, " ").slice(1)}
+                      </label>
+                      <Input
                         type="text"
                         name={field}
                         value={formData[field]}
                         onChange={handleChange}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                        className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
                       />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Prompt Information */}
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
-              <div className="bg-zinc-800 p-4 border-b border-zinc-700">
-                <h3 className="text-primary font-bold flex items-center">
-                  <span className="mr-2">💬</span> Prompt Information
-                </h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 gap-4">
-                {fieldGroups.prompts.map((field) => (
-                  <div key={field} className="space-y-1">
-                    <label className="block text-sm font-medium text-zinc-300 capitalize">
-                      {field.replace(/_/g, " ")}
-                    </label>
-                    <textarea
-                      name={field}
-                      value={formData[field]}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary resize-none min-h-[80px]"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Technical Details */}
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
-              <div className="bg-zinc-800 p-4 border-b border-zinc-700">
-                <h3 className="text-primary font-bold flex items-center">
-                  <span className="mr-2">⚙️</span> Technical Details
-                </h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fieldGroups.technical.map((field) => (
-                  <div key={field} className="space-y-1">
-                    <label className="block text-sm font-medium text-zinc-300 capitalize">
-                      {field.replace(/_/g, " ")}
-                    </label>
-                    <input
-                      type={field === "created_at" ? "date" : "text"}
-                      name={field}
-                      value={formData[field]}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Metadata */}
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
-              <div className="bg-zinc-800 p-4 border-b border-zinc-700">
-                <h3 className="text-primary font-bold flex items-center">
-                  <span className="mr-2">🔖</span> Metadata
-                </h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fieldGroups.meta.map((field) => (
-                  <div key={field} className="space-y-1">
-                    <label className="block text-sm font-medium text-zinc-300 capitalize">
-                      {field.replace(/_/g, " ")}
-                    </label>
-                    <input
-                      type="text"
-                      name={field}
-                      value={formData[field]}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         {/* Submit Button */}
         <div className="mt-8 flex justify-end">
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className={`px-6 py-3 bg-primary text-zinc-900 rounded-md font-bold hover:bg-yellow-400 transition-colors flex items-center ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            size="lg"
+            className="px-6"
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-zinc-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <span className="mr-2">💾</span> Save Asset
+                <Save className="w-4 h-4 mr-2" />
+                Save Asset
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

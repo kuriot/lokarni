@@ -1,64 +1,28 @@
-Willkommen bei **LokArni** – deiner lokalen Medien- und Informationsbibliothek für KI-Modelle, Bilder, Videos, Prompts und mehr!
+# 🚀 LokArni – Kurzeinstieg für Nutzer:innen
+
+Willkommen bei **LokArni**, deiner lokalen Medien- und Informationsbibliothek für KI-bezogene Inhalte wie LORAs, Bilder, Videos und mehr.
 
 ---
 
-## 🛠️ Was kannst du mit LokArni machen?
+## 🛠️ Was du mit LokArni machen kannst
 
-- Eigene KI-Modelle (z. B. LORAs, Checkpoints) speichern, suchen und verwalten
-- Bilder & Videos importieren, mit Prompts, Tags und Metadaten versehen
-- Inhalte nach Kategorie durchsuchen, sortieren und als Favoriten markieren
-- CivitAI-Modelle direkt per Link oder ID importieren
-- ZIP-Dateien mit Medien & Metainformationen bequem hochladen oder exportieren
-
----
-
-## 🚀 Schnellstart
-
-**Voraussetzungen:**  
-- Python 3.10+  
-- Node.js 18+ & npm
-
-**Empfohlene Startreihenfolge beim ersten Mal:**  
-1. **Backend starten:**  
-   Führe `backend_start.bat` aus und warte, bis alle Abhängigkeiten installiert und das Backend bereit ist.
-2. **Frontend starten:**  
-   Führe anschließend `frontend_start.bat` aus und warte, bis alle npm-Abhängigkeiten installiert und das Frontend bereit ist.
-3. **Gesamte Anwendung starten:**  
-   Danach kannst du wie gewohnt `start_lokarni.bat` ausführen, um alles automatisch zu starten und das Frontend im Browser zu öffnen.
-
-> **Hinweis:**  
-> Beim ersten Start müssen die Abhängigkeiten für Backend und Frontend einmalig installiert werden. Erst danach funktioniert der automatische Start reibungslos.
-
-**Alternativ (z. B. auf Linux/Mac):**
-
-```bash
-# Backend starten
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r ../requirements.txt
-uvicorn main:app --reload
-
-# Frontend starten
-cd frontend
-npm install
-npm run dev
-```
-
-- Frontend: http://localhost:5173  
-- Backend (API): http://localhost:8000
+- Eigene KI-Modelle (z. B. LORAs, Checkpoints) speichern und verwalten
+- Bilder & Videos importieren und mit Prompts, Tags, Metadaten versehen
+- Inhalte nach Kategorie durchsuchen, sortieren und favorisieren
+- CivitAI-Modelle direkt über die API importieren
+- ZIP-Dateien mit Medien + Metainformationen hochladen oder exportieren
 
 ---
 
 ## 🧭 Aufbau der Anwendung
 
-- **Frontend:** Moderne Oberfläche mit Sidebar-Navigation
-  - „Add“ → Inhalte hinzufügen (manuell, ZIP, CivitAI)
-  - „Manage“ → Assets durchsuchen, bearbeiten, löschen
-  - „Search“ → Filter- & Stichwortsuche nach Tags, Prompts etc.
-  - „Settings“ → API-Key, Sprache, Optionen (geplant)
+- **Frontend**: moderne Oberfläche mit Sidebar-Navigation
+  - Ansicht „Add“ → Inhalte hinzufügen (z. B. manuell, über ZIP oder CivitAI)
+  - Ansicht „Manage“ → bestehende Assets durchsuchen, bearbeiten oder löschen
+  - Ansicht „Search“ → Filter- & Stichwortsuche nach Tags, Prompts etc.
+  - Ansicht „Settings“ → API-Key für CivitAI und andere Optionen
 
-- **Backend:** FastAPI-Anwendung mit SQLite-Datenbank
+- **Backend**: FastAPI-Anwendung mit SQLite-Datenbank
   - Routen für Assets, Kategorien, Uploads, Importe
   - Datenmodelle für strukturierte Verwaltung von Inhalten
 
@@ -82,38 +46,48 @@ Konzepte & Stile
  └── Charakter
 ```
 
-- Wenn ein Asset eingetragen wird (mit allen Informationen), wird die passende Subkategorie **automatisch anhand der Informationen** (außer Titel und Beschreibung) ermittelt – sobald das jeweilige Subkategorie-Wort in den Daten vorkommt, wird diese zugeordnet.
-- Beim ersten Start werden Standardkategorien automatisch angelegt (inkl. Favoriten)
-- Eigene Kategorien/Subkategorien lassen sich über das Frontend oder Backend verwalten (Adminbereich geplant)
+- Jeder Asset-Eintrag kann **einer Subkategorie zugeordnet** werden
+- Diese Einordnung ermöglicht eine gezielte Filterung und strukturierte Darstellung im Frontend
+- Beim ersten Start werden Standardkategorien automatisch angelegt (inkl. Favoriten-Kategorie)
+- Du kannst eigene Kategorien und Subkategorien über das Backend oder direkt im Code erweitern
 
 ---
 
-## 📦 Inhaltstypen & Importe
+## 📦 Inhaltstypen
 
-- **Modelle:** LORA, Checkpoint, VAE – inkl. Version, Base Model, Trigger-Wörter
-- **Bilder/Videos:** Mit Prompts, Ressourcen, Tags, Vorschau
-- **ZIP-Archiv:** Enthält `assets.json` + Medien (für Backup oder Massenimport)
-- **CivitAI-Link:** Direktimport von Modellen & Metadaten
-
----
-
-## 📝 Geplante Features
-
-- Editierbare Assets direkt in der Oberfläche
-- Verbesserte Benutzerfreundlichkeit & Fehlerkorrektur
-- Settings-Panel und Mehrsprachigkeit (DE/EN)
-- Adminbereich zur Kategorie/Asset-Verwaltung
+- **Modelle**: z. B. LORA, Checkpoint, VAE → inkl. Version, Base-Model, Trigger-Wörter
+- **Bilder/Videos**: mit Prompts, Ressourcen, Tags und Vorschau
+- **ZIPs**: beinhalten `assets.json` + Medien → ideal für Backup oder Massenimport
 
 ---
 
-## ❓ Hinweise & Hilfe
+## 🔄 Importmöglichkeiten
+
+- **ZIP-Datei** (über /api/assets/import):
+  - Enthält `assets.json` + Ordner `media/`
+  - Wird automatisch analysiert und in die DB übernommen
+
+- **CivitAI-Modell** (über /api/import/from-civitai):
+  - Einfach Link einfügen oder über ID abrufen
+  - Bilder + Metadaten werden automatisch gespeichert
+
+- **Einzelbild**: per Datei-Upload oder URL (z. B. Referenzbild oder Render)
+
+---
+
+## 📝 Hinweise
 
 - Die Anwendung läuft lokal unter `http://localhost:8000` (Backend) und `http://localhost:5173` (Frontend)
-- Medien werden immer unter `/import/images/{typ}` abgelegt
-- Die SQLite-Datenbank (`lokarni.db`) kann direkt gesichert oder verschoben werden
-- API-Key für CivitAI wird im Frontend gespeichert (Settings-Panel geplant)
+- Der Medienpfad beginnt immer mit `/import/images/{typ}`
+- Die SQLite-Datenbank (`lokarni.db`) kann direkt gesichert werden
+- API-Key für CivitAI wird per Cookie oder manuell im Frontend gespeichert
 
-Für technische Details lies die `README.md`.  
-Bei Fragen oder Problemen: Issues auf GitHub öffnen.
+---
+
+## 📣 Weitere Hilfe
+
+- Lies die `README.md` für technische Hintergründe
+- Sieh dir das Planungsboard an für geplante Features
+- Für Entwickler: `main.py`, `models.py`, `routes/` und `App.jsx` sind die Schlüsseldateien
 
 Viel Spaß mit deiner eigenen KI-Mediathek! ✨

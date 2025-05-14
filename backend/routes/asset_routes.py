@@ -75,6 +75,36 @@ def get_assets(
 
     return query.all()
 
+@router.post("/", response_model=schemas.Asset)
+def create_asset(asset: schemas.AssetCreate, db: Session = Depends(database.get_db)):
+    new_asset = models.Asset(
+        name=asset.name,
+        type=asset.type,
+        path=asset.path,
+        preview_image=asset.preview_image,
+        description=asset.description,
+        trigger_words=asset.trigger_words,
+        positive_prompt=asset.positive_prompt,
+        negative_prompt=asset.negative_prompt,
+        tags=asset.tags,
+        model_version=asset.model_version,
+        used_resources=asset.used_resources,
+        slug=asset.slug,
+        creator=asset.creator,
+        base_model=asset.base_model,
+        created_at=asset.created_at,
+        nsfw_level=asset.nsfw_level,
+        download_url=asset.download_url,
+        media_files=asset.media_files,
+        is_favorite=asset.is_favorite,
+        custom_fields=asset.custom_fields  # WICHTIG: custom_fields hinzufügen!
+    )
+
+    db.add(new_asset)
+    db.commit()
+    db.refresh(new_asset)
+    return new_asset
+
 @router.get("/keywords")
 def get_keywords(q: str = "", category: str = "All", db: Session = Depends(database.get_db)):
     assets = db.query(models.Asset).all()
@@ -160,34 +190,36 @@ def search_assets(q: str = "", category: str = "All", db: Session = Depends(data
 
     return list(filter(matches, all_assets))
 
-@router.post("/", response_model=schemas.Asset)
-def create_asset(asset: schemas.AssetCreate, db: Session = Depends(database.get_db)):
-    new_asset = models.Asset(
-        name=asset.name,
-        type=asset.type,
-        path=asset.path,
-        preview_image=asset.preview_image,
-        description=asset.description,
-        trigger_words=asset.trigger_words,
-        positive_prompt=asset.positive_prompt,
-        negative_prompt=asset.negative_prompt,
-        tags=asset.tags,
-        model_version=asset.model_version,
-        used_resources=asset.used_resources,
-        slug=asset.slug,
-        creator=asset.creator,
-        base_model=asset.base_model,
-        created_at=asset.created_at,
-        nsfw_level=asset.nsfw_level,
-        download_url=asset.download_url,
-        media_files=asset.media_files,
-        is_favorite=asset.is_favorite
-    )
+											   
+																					 
+							 
+						
+						
+						
+										  
+									  
+										  
+											  
+											  
+						
+										  
+											
+						
+							  
+									
+									
+									
+										
+									  
+									  
+																		   
+	 
 
-    db.add(new_asset)
-    db.commit()
-    db.refresh(new_asset)
-    return new_asset
+					 
+			   
+						 
+					
+
 
 @router.get("/{asset_id}", response_model=schemas.Asset)
 def get_asset(asset_id: int, db: Session = Depends(database.get_db)):

@@ -31,6 +31,9 @@ class Asset(Base):
     nsfw_level = Column(String, default="")
     download_url = Column(String, default="")
     media_files = Column(JSON, default=[])
+    
+    custom_fields = Column(JSON, nullable=True, default={})
+
 
     # 🔗 Beziehung zur SubCategory
     subcategory_id = Column(Integer, ForeignKey("subcategories.id", ondelete="SET NULL"), nullable=True)
