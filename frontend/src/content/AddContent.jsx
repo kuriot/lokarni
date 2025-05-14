@@ -2,12 +2,14 @@ import { useState } from "react";
 import AddFromCivitai from "../components/AddFromCivitai";
 import AddManualForm from "../components/AddManualForm";
 import AddFromCivitaiSearch from "../components/AddFromCivitaiSearch";
+import ImportImagePage from "../content/ImportImagePage";
 
 export default function AddContent({ onImportSuccess }) {
   const [activeTab, setActiveTab] = useState("manual");
 
   const tabs = [
     { key: "manual", label: "📝 Manuell" },
+    { key: "image", label: "🖼️ From Image" },
     { key: "civitai", label: "🌐 CivitAI-Link" },
     { key: "civitai-search", label: "🔎 CivitAI-Search" },
   ];
@@ -55,6 +57,11 @@ export default function AddContent({ onImportSuccess }) {
         {activeTab === "civitai-search" && (
           <AddFromCivitaiSearch onImportSuccess={onImportSuccess} />
         )}
+
+        {activeTab === "image" && (
+          <ImportImagePage onImportSuccess={onImportSuccess} /> // ✅ Neu
+        )}
+
       </div>
     </div>
   );

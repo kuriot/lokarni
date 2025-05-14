@@ -1,9 +1,26 @@
-// 📄 frontend/src/components/AssetGrid.jsx
+import { useRef, useState } from "react";
+import { Star, Play, LayoutGrid, Columns } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
-import { useRef } from "react";
-import { Star } from "lucide-react";
-
-export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites = false, category = null, layout = "masonry" }) {
+export default function AssetGrid({ 
+  assets, 
+  onSelect, 
+  setAssets, 
+  onlyFavorites = false, 
+  category = null, 
+  layout = "masonry" 
+}) {
+  const [hoveredId, setHoveredId] = useState(null);
+  
   const isVideo = (path) => path?.endsWith(".webm") || path?.endsWith(".mp4");
   const isImage = (path) => path?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
@@ -13,7 +30,7 @@ export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites =
         method: "PATCH",
       });
 
-      if (!response.ok) throw new Error("Fehler beim Favoritenstatus");
+      if (!response.ok) throw new Error("Failed to toggle favorite");
 
       const updatedAsset = await response.json();
 
@@ -47,71 +64,154 @@ export default function AssetGrid({ assets, onSelect, setAssets, onlyFavorites =
       : assets;
 
   const getGridClass = () => {
-    if (layout === "grid") return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4";
-    if (layout === "cinema") return "grid grid-cols-1 gap-y-10";
-    if (layout === "masonry") return "columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 space-y-4";
-    return "grid grid-cols-1";
+    if (layout === "grid") {
+      return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6";
+    }
+    if (layout === "masonry") {
+      return "columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-6 space-y-6";
+    }
+    return "grid grid-cols-1 gap-6";
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.05,
+        duration: 0.3,
+        ease: "easeOut",
+      },
+    }),
+    hover: {
+      y: -8,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut",
+      },
+    },
   };
 
   return (
-    <div className={`${getGridClass()} px-2 transition-all duration-300`}>
-      {filteredAssets.map((asset) => {
-        const previewPath = getPreviewPath(asset);
-        const fullPath = previewPath ? `http://localhost:8000${previewPath}` : null;
+    <div className={cn(getGridClass(), "px-2 transition-all duration-300")}>
+      <AnimatePresence mode="wait">
+        {filteredAssets.map((asset, index) => {
+          const previewPath = getPreviewPath(asset);
+          const fullPath = previewPath ? `http://localhost:8000${previewPath}` : null;
 
-        return (
-          <div
-            key={asset.id}
-            onClick={() => onSelect(asset)}
-            className={`relative group cursor-pointer bg-box rounded-lg shadow hover:shadow-xl transition overflow-hidden border border-[#2f2f2f] ${layout === 'grid' ? 'flex flex-col' : 'break-inside-avoid'}`}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(asset.id);
-              }}
-              className={`absolute top-2 left-2 p-1 rounded-full z-10 bg-black bg-opacity-60 hover:bg-opacity-80 transition-colors ${
-                asset.is_favorite ? "text-yellow-400" : "text-gray-300"
-              }`}
-              title={asset.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}
+          return (
+            <motion.div
+              key={asset.id}
+              custom={index}
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
+              onHoverStart={() => setHoveredId(asset.id)}
+              onHoverEnd={() => setHoveredId(null)}
+              className={cn(
+                "relative group cursor-pointer",
+                layout === "masonry" && "break-inside-avoid"
+              )}
+              onClick={() => onSelect(asset)}
             >
-              <Star fill={asset.is_favorite ? "currentColor" : "none"} />
-            </button>
+              <Card className="overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:border-primary/30">
+                <div className="relative">
+                  {/* Favorite Button */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(asset.id);
+                        }}
+                        size="icon"
+                        variant="ghost"
+                        className={cn(
+                          "absolute top-3 left-3 z-20 bg-black/50 backdrop-blur-sm hover:bg-black/70",
+                          asset.is_favorite && "text-yellow-400"
+                        )}
+                      >
+                        <Star
+                          className="w-4 h-4"
+                          fill={asset.is_favorite ? "currentColor" : "none"}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{asset.is_favorite ? "Remove from favorites" : "Add to favorites"}</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-            {isVideo(previewPath) ? (
-              <VideoHoverPreview src={fullPath} />
-            ) : (
-              <img
-                src={fullPath || "/fallback.jpg"}
-                alt={asset.name}
-                className={`w-full object-cover border-b border-[#2f2f2f] bg-black ${layout === 'grid' ? 'aspect-[9/16]' : ''}`}
-              />
-            )}
+                  {/* Type Badge */}
+                  <Badge
+                    variant="secondary"
+                    className="absolute top-3 right-3 z-20 bg-black/50 backdrop-blur-sm"
+                  >
+                    {asset.type}
+                  </Badge>
 
-            <div className="bg-[#101010] text-[#e2f263] p-3 flex flex-col justify-between flex-1">
-              <h3 className="text-base font-semibold whitespace-normal break-words leading-snug mb-2">
-                {asset.name}
-              </h3>
-              <div className="mt-auto">
-                <p className="text-sm opacity-70 flex justify-between">
-                  <span>{asset.type}</span>
-                  <span className="ml-2">{asset.base_model}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+                  {/* Media Preview */}
+                  <div className="relative overflow-hidden">
+                    {isVideo(previewPath) ? (
+                      <>
+                        <VideoHoverPreview src={fullPath} asset={asset} />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                          <Play className="w-12 h-12 text-white/80 drop-shadow-2xl" />
+                        </div>
+                      </>
+                    ) : (
+                      <motion.img
+                        src={fullPath || "/fallback.jpg"}
+                        alt={asset.name}
+                        className={cn(
+                          "w-full object-cover bg-accent/10",
+                          layout === "grid" ? "aspect-[9/16]" : "max-h-[500px]"
+                        )}
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
+                    
+                    {/* Hover Overlay */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: hoveredId === asset.id ? 1 : 0 }}
+                      className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"
+                    />
+                  </div>
+                </div>
+
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">
+                    {asset.name}
+                  </h3>
+                  
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className="truncate">{asset.base_model}</span>
+                    {asset.is_favorite && (
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }
 
-function VideoHoverPreview({ src }) {
+function VideoHoverPreview({ src, asset }) {
   const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const handleMouseEnter = () => {
     if (videoRef.current) {
       videoRef.current.play();
+      setIsPlaying(true);
     }
   };
 
@@ -119,19 +219,26 @@ function VideoHoverPreview({ src }) {
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
+      setIsPlaying(false);
     }
   };
 
   return (
-    <video
-      ref={videoRef}
-      src={src}
-      muted
-      preload="metadata"
-      playsInline
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className="w-full aspect-[9/16] object-cover border-b border-[#2f2f2f] bg-black"
-    />
+    <div className="relative">
+      <video
+        ref={videoRef}
+        src={src}
+        muted
+        loop
+        preload="metadata"
+        playsInline
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          "w-full aspect-[9/16] object-cover bg-accent/10 transition-transform duration-300",
+          isPlaying && "scale-105"
+        )}
+      />
+    </div>
   );
 }

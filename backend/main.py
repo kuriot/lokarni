@@ -19,7 +19,8 @@ from backend.routes import (
     category_routes,
     upload_routes,
     import_zip_route,
-    asset_type_routes  # Neue Route importieren
+    asset_type_routes,
+    image_metadata_extract
 )
 
 app = FastAPI()
@@ -133,5 +134,5 @@ app.include_router(civitai_import.router, prefix="/api/import", tags=["Import"])
 app.include_router(civitai_test.router, prefix="/api/test", tags=["Test"])
 app.include_router(upload_routes.router, prefix="/api", tags=["Upload"])
 app.include_router(import_zip_route.router, prefix="/api", tags=["ZIP Import"])
-# Neue Asset-Typen-Route hinzufügen
 app.include_router(asset_type_routes.router, prefix="/api/asset-types", tags=["Asset Types"])
+app.include_router(image_metadata_extract.router, prefix="/api/image", tags=["Image Metadata"])

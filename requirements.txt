@@ -8,3 +8,7 @@ aiohttp
 requests
 alembic>=1.11.0
 httpx>=0.24.0
+Pillow
+requests
+beautifulsoup4
+exifread

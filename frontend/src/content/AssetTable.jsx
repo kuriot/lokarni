@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2, Image as ImageIcon, Pencil, Download, Loader2 } from "lucide-react";
+import { Trash2, Image as ImageIcon, Pencil, Download, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Search, SortAsc, SortDesc } from "lucide-react";
 import axios from "axios";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -19,6 +19,7 @@ export default function AssetTable() {
   const [editingAsset, setEditingAsset] = useState(null);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const itemsPerPage = 20;
 
@@ -27,9 +28,14 @@ export default function AssetTable() {
   }, []);
 
   const loadAssets = async () => {
-    const res = await axios.get("/api/assets/");
-    setAssets(res.data);
-    setSelectedAssets([]);
+    setLoading(true);
+    try {
+      const res = await axios.get("/api/assets/");
+      setAssets(res.data);
+      setSelectedAssets([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const findAssetById = async (id) => {
@@ -38,6 +44,7 @@ export default function AssetTable() {
   };
 
   const deleteAsset = async (id) => {
+    if (!window.confirm("Dieses Asset wirklich löschen?")) return;
     await axios.delete(`/api/assets/${id}`);
     loadAssets();
   };
@@ -81,7 +88,7 @@ export default function AssetTable() {
       });
 
       setImportStatus("Import erfolgreich ✅");
-      setTimeout(() => setImportStatus(""), 3000);
+      setTimeout(() => setImportStatus(""), 180000);
       loadAssets();
     } catch (err) {
       console.error(err);
@@ -110,7 +117,9 @@ export default function AssetTable() {
     });
 
   const pageCount = Math.ceil(filteredAssets.length / itemsPerPage);
-  const pagedAssets = filteredAssets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pagedAssets = filteredAssets.slice(startIndex, endIndex);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -147,231 +156,423 @@ export default function AssetTable() {
     );
   };
 
-  const handleExport = async () => {
-    const zip = new JSZip();
-    const assetsData = [];
-    const mediaFolder = zip.folder("media");
-
-    for (const asset of assets) {
-      assetsData.push({
-        id: asset.id,
-        name: asset.name,
-        type: asset.type,
-        media_files: asset.media_files,
-        subcategory: asset.subcategory,
-        description: asset.description || "",
-        path: asset.path || ""
-      });
-
-      if (Array.isArray(asset.media_files)) {
-        for (const file of asset.media_files) {
-          if (typeof file === "string") {
-            const url = BASE_URL + file;
-            try {
-              const response = await fetch(url);
-              if (!response.ok) continue;
-              const blob = await response.blob();
-              const filename = file.split("/").pop();
-              mediaFolder.file(filename, blob);
-            } catch (err) {
-              console.warn(`Fehler beim Laden von ${url}`, err);
-            }
-          }
-        }
+const handleExport = async () => {
+  try {
+    setImportStatus("Export wird vorbereitet...");
+    
+    // Verwende axios statt fetch für konsistenteres Verhalten
+    const response = await axios.get('/api/assets/export/', {
+      responseType: 'blob', // Wichtig für die Binärdaten
+      timeout: 60000, // 60 Sekunden Timeout für große Exporte
+      headers: {
+        'Accept': 'application/zip',
       }
-    }
+    });
 
-    zip.file("assets.json", JSON.stringify(assetsData, null, 2));
-    const blob = await zip.generateAsync({ type: "blob" });
-    saveAs(blob, "Lokarni_Export.zip");
+    // Erstelle den Download
+    const blob = new Blob([response.data], { type: 'application/zip' });
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `Lokarni_Export_${date}.zip`;
+
+    saveAs(blob, filename);
+
+    setImportStatus("Export erfolgreich ✅");
+    setTimeout(() => setImportStatus(""), 3000);
+  } catch (error) {
+    console.error('Export Fehler:', error);
+    
+    // Detaillierte Fehlermeldung
+    let errorMessage = "Export fehlgeschlagen ❌";
+    if (error.response) {
+      errorMessage += ` (${error.response.status})`;
+    } else if (error.request) {
+      errorMessage += " (Keine Antwort vom Server)";
+    } else {
+      errorMessage += ` (${error.message})`;
+    }
+    
+    setImportStatus(errorMessage);
+    setTimeout(() => setImportStatus(""), 5000);
+  }
+};
+
+  // Pagination controls
+  const goToPage = (page) => {
+    if (page >= 1 && page <= pageCount) {
+      setCurrentPage(page);
+    }
+  };
+
+  const Pagination = () => {
+    const maxPageButtons = 5;
+    const halfRange = Math.floor(maxPageButtons / 2);
+    let startPage = Math.max(1, currentPage - halfRange);
+    let endPage = Math.min(pageCount, startPage + maxPageButtons - 1);
+    
+    if (endPage - startPage < maxPageButtons - 1) {
+      startPage = Math.max(1, endPage - maxPageButtons + 1);
+    }
+    
+    const pageNumbers = [];
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => goToPage(1)}
+          disabled={currentPage === 1}
+          className={`p-2 rounded-lg transition-colors ${
+            currentPage === 1 
+              ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" 
+              : "bg-zinc-800 hover:bg-zinc-700 text-white"
+          }`}
+          title="Erste Seite"
+        >
+          <ChevronsLeft size={16} />
+        </button>
+        
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`p-2 rounded-lg transition-colors ${
+            currentPage === 1 
+              ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" 
+              : "bg-zinc-800 hover:bg-zinc-700 text-white"
+          }`}
+          title="Vorherige Seite"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        
+        {startPage > 1 && (
+          <>
+            <button
+              onClick={() => goToPage(1)}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+            >
+              1
+            </button>
+            {startPage > 2 && <span className="text-zinc-600 px-2">...</span>}
+          </>
+        )}
+        
+        {pageNumbers.map((pageNum) => (
+          <button
+            key={pageNum}
+            onClick={() => goToPage(pageNum)}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              currentPage === pageNum 
+                ? "bg-primary text-zinc-900 font-semibold" 
+                : "bg-zinc-800 hover:bg-zinc-700 text-white"
+            }`}
+          >
+            {pageNum}
+          </button>
+        ))}
+        
+        {endPage < pageCount && (
+          <>
+            {endPage < pageCount - 1 && <span className="text-zinc-600 px-2">...</span>}
+            <button
+              onClick={() => goToPage(pageCount)}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+            >
+              {pageCount}
+            </button>
+          </>
+        )}
+        
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === pageCount}
+          className={`p-2 rounded-lg transition-colors ${
+            currentPage === pageCount 
+              ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" 
+              : "bg-zinc-800 hover:bg-zinc-700 text-white"
+          }`}
+          title="Nächste Seite"
+        >
+          <ChevronRight size={16} />
+        </button>
+        
+        <button
+          onClick={() => goToPage(pageCount)}
+          disabled={currentPage === pageCount}
+          className={`p-2 rounded-lg transition-colors ${
+            currentPage === pageCount 
+              ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" 
+              : "bg-zinc-800 hover:bg-zinc-700 text-white"
+          }`}
+          title="Letzte Seite"
+        >
+          <ChevronsRight size={16} />
+        </button>
+      </div>
+    );
   };
 
   return (
-    <div className="relative overflow-x-auto pb-32">
+    <div className="bg-zinc-950 rounded-xl shadow-2xl overflow-hidden">
       {preview && (
-        <div className="fixed top-4 right-4 z-50 bg-black border border-zinc-700 p-2 rounded shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-zinc-900 border border-zinc-700 p-2 rounded-lg shadow-2xl">
           {isVideo(preview) ? (
-            <video src={preview} className="w-48 h-48 object-cover" autoPlay loop muted />
+            <video src={preview} className="w-64 h-64 object-cover rounded" autoPlay loop muted />
           ) : (
-            <img src={preview} alt="Vorschau" className="w-48 h-48 object-cover" />
+            <img src={preview} alt="Vorschau" className="w-64 h-64 object-cover rounded" />
           )}
         </div>
       )}
 
-      {/* Filter */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Suchen nach Name..."
-          className="bg-zinc-800 text-white px-3 py-2 rounded"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <select
-          className="bg-zinc-800 text-white px-3 py-2 rounded"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <option value="">Alle Typen</option>
-          {uniqueTypes.map((type) => (
-            <option key={type} value={type}>{type}</option>
-          ))}
-        </select>
-        <select
-          className="bg-zinc-800 text-white px-3 py-2 rounded"
-          value={sortKey}
-          onChange={(e) => handleSort(e.target.value)}
-        >
-          <option value="name">Sortieren nach Name</option>
-          <option value="type">Sortieren nach Typ</option>
-          <option value="media">Sortieren nach Medienanzahl</option>
-        </select>
-      </div>
-
-      {/* Tabelle */}
-      <table className="min-w-full bg-zinc-900 border border-zinc-700 text-sm">
-        <thead className="text-left text-zinc-400 bg-zinc-800">
-          <tr>
-            <th className="p-2">
-              <input
-                type="checkbox"
-                onChange={toggleSelectAll}
-                checked={pagedAssets.every((a) => selectedAssets.includes(a.id))}
-              />
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("name")}>
-              Name {sortKey === "name" && (sortAsc ? "▲" : "▼")}
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("type")}>
-              Typ {sortKey === "type" && (sortAsc ? "▲" : "▼")}
-            </th>
-            <th className="p-2 cursor-pointer" onClick={() => handleSort("media")}>
-              Medien {sortKey === "media" && (sortAsc ? "▲" : "▼")}
-            </th>
-            <th className="p-2">Aktionen</th>
-          </tr>
-        </thead>
-        <tbody className="text-white">
-          {pagedAssets.map((asset) => {
-            const previewUrl = getPreviewUrl(asset);
-            return (
-              <tr key={asset.id} className="border-t border-zinc-700 hover:bg-zinc-800">
-                <td className="p-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedAssets.includes(asset.id)}
-                    onChange={() => toggleSelectOne(asset.id)}
-                  />
-                </td>
-                <td className="p-2 flex items-center gap-2">
-                  {previewUrl ? (
-                    <div
-                      className="cursor-pointer"
-                      onMouseEnter={() => setPreview(previewUrl)}
-                      onMouseLeave={() => setPreview(null)}
-                    >
-                      <ImageIcon className="text-zinc-400" />
-                    </div>
-                  ) : (
-                    <ImageIcon className="text-zinc-700" />
-                  )}
-                  {asset.name}
-                </td>
-                <td className="p-2">{asset.type}</td>
-                <td className="p-2">{asset.media_files?.length || 0}</td>
-                <td className="p-2 flex gap-2 items-center">
-                  <button
-                    className="text-blue-400 hover:text-white"
-                    onClick={() => setEditingAsset(asset)}
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <span className="text-zinc-600">|</span>
-                  <button
-                    className="text-red-500 hover:text-white"
-                    onClick={() => deleteAsset(asset.id)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* Aktionen & Seiten */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-white gap-4 px-2">
-        <div className="flex items-center gap-4">
-          {selectedAssets.length > 0 && (
-            <>
-              <span className="text-sm">{selectedAssets.length} ausgewählt</span>
-              <button
-                onClick={deleteSelectedAssets}
-                className="text-sm text-red-400 hover:text-white underline"
-              >
-                Ausgewählte löschen
-              </button>
-              <button
-                onClick={renameTypeForSelected}
-                className="text-sm text-blue-400 hover:text-white underline"
-              >
-                Typ umbenennen
-              </button>
-            </>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {Array.from({ length: pageCount }, (_, i) => (
+      {/* Header */}
+      <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 p-6 border-b border-zinc-700">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-primary">Asset Verwaltung</h2>
+          <div className="flex gap-3">
             <button
-              key={i + 1}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded ${
-                currentPage === i + 1 ? "bg-primary text-black" : "bg-zinc-700 hover:bg-zinc-600"
-              }`}
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
             >
-              {i + 1}
+              <Download size={16} />
+              Export
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Immer sichtbare Box unten */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-zinc-800 border border-zinc-700 px-6 py-3 rounded shadow text-white flex flex-col items-center gap-2 w-full max-w-md">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Download size={16} />
-            <button onClick={handleExport} className="hover:underline">
-              Exportieren (ZIP)
-            </button>
-          </div>
-          <span className="text-zinc-600">|</span>
-          <div className="flex items-center gap-2">
-            <label htmlFor="import-zip" className="cursor-pointer hover:underline">
-              Importieren (ZIP)
+            <label className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-zinc-900 rounded-lg cursor-pointer transition-colors font-semibold">
+              <Download size={16} className="rotate-180" />
+              Import
+              <input
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={handleImport}
+              />
             </label>
+          </div>
+        </div>
+
+        {/* Filter Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500" size={20} />
             <input
-              id="import-zip"
-              type="file"
-              accept=".zip"
-              className="hidden"
-              onChange={handleImport}
+              type="text"
+              placeholder="Suchen nach Name..."
+              className="w-full bg-zinc-800 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500" size={20} />
+            <select
+              className="w-full bg-zinc-800 text-white pl-10 pr-8 py-3 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              value={filterType}
+              onChange={(e) => {
+                setFilterType(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">Alle Typen</option>
+              {uniqueTypes.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative">
+            {sortAsc ? (
+              <SortAsc className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500" size={20} />
+            ) : (
+              <SortDesc className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500" size={20} />
+            )}
+            <select
+              className="w-full bg-zinc-800 text-white pl-10 pr-8 py-3 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              value={sortKey}
+              onChange={(e) => handleSort(e.target.value)}
+            >
+              <option value="name">Nach Name</option>
+              <option value="type">Nach Typ</option>
+              <option value="media">Nach Medienanzahl</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        {/* Results info and pagination */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="text-zinc-400">
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="animate-spin" size={16} />
+                <span>Lade Assets...</span>
+              </div>
+            ) : (
+              <span className="text-sm">
+                Zeige <span className="text-white font-semibold">{startIndex + 1} - {Math.min(endIndex, filteredAssets.length)}</span> von <span className="text-white font-semibold">{filteredAssets.length}</span> Assets
+              </span>
+            )}
+          </div>
+          <Pagination />
         </div>
 
-        {importStatus && (
-          <div className="w-full">
-            <span className="text-sm">{importStatus}</span>
-            <div className="bg-zinc-700 h-2 rounded overflow-hidden mt-1">
+        {/* Table */}
+        <div className="bg-zinc-900 rounded-lg overflow-x-auto shadow-inner">
+          <table className="w-full">
+            <thead className="bg-zinc-800">
+              <tr>
+                <th className="w-12 p-3 text-left">
+                  <input
+                    type="checkbox"
+                    onChange={toggleSelectAll}
+                    checked={pagedAssets.length > 0 && pagedAssets.every((a) => selectedAssets.includes(a.id))}
+                    className="rounded border-zinc-600 bg-zinc-700 focus:ring-2 focus:ring-primary"
+                  />
+                </th>
+                <th className="min-w-[250px] p-3 text-left cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort("name")}>
+                  <div className="flex items-center gap-2">
+                    Name 
+                    {sortKey === "name" && (
+                      <span className="text-primary">{sortAsc ? "▲" : "▼"}</span>
+                    )}
+                  </div>
+                </th>
+                <th className="w-32 p-3 text-left cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort("type")}>
+                  <div className="flex items-center gap-2">
+                    Typ
+                    {sortKey === "type" && (
+                      <span className="text-primary">{sortAsc ? "▲" : "▼"}</span>
+                    )}
+                  </div>
+                </th>
+                <th className="w-24 p-3 text-left cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort("media")}>
+                  <div className="flex items-center gap-2">
+                    Medien
+                    {sortKey === "media" && (
+                      <span className="text-primary">{sortAsc ? "▲" : "▼"}</span>
+                    )}
+                  </div>
+                </th>
+                <th className="w-32 p-3 text-left">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedAssets.map((asset, index) => {
+                const previewUrl = getPreviewUrl(asset);
+                return (
+                  <tr key={asset.id} className={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${index % 2 === 0 ? 'bg-zinc-900/50' : ''}`}>
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedAssets.includes(asset.id)}
+                        onChange={() => toggleSelectOne(asset.id)}
+                        className="rounded border-zinc-600 bg-zinc-700 focus:ring-2 focus:ring-primary"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-3">
+                        {previewUrl ? (
+                          <div
+                            className="w-10 h-10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all flex-shrink-0"
+                            onMouseEnter={() => setPreview(previewUrl)}
+                            onMouseLeave={() => setPreview(null)}
+                          >
+                            {isVideo(previewUrl) ? (
+                              <video src={previewUrl} className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ImageIcon className="text-zinc-600" size={20} />
+                          </div>
+                        )}
+                        <span className="font-medium truncate max-w-[300px]" title={asset.name}>
+                          {asset.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 max-w-full truncate" title={asset.type}>
+                        {asset.type}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">
+                        {asset.media_files?.length || 0}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                          onClick={() => setEditingAsset(asset)}
+                          title="Bearbeiten"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                          onClick={() => deleteAsset(asset.id)}
+                          title="Löschen"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedAssets.length > 0 && (
+              <>
+                <span className="text-zinc-400 font-medium">
+                  {selectedAssets.length} ausgewählt
+                </span>
+                <button
+                  onClick={deleteSelectedAssets}
+                  className="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium"
+                >
+                  Auswahl löschen
+                </button>
+                <button
+                  onClick={renameTypeForSelected}
+                  className="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors text-sm font-medium"
+                >
+                  Typ umbenennen
+                </button>
+              </>
+            )}
+          </div>
+          <Pagination />
+        </div>
+      </div>
+
+      {/* Import Status (if active) */}
+      {importStatus && (
+        <div className="fixed bottom-4 right-4 bg-zinc-900 border border-zinc-700 p-4 rounded-lg shadow-2xl max-w-sm">
+          <p className="text-sm text-white mb-2">{importStatus}</p>
+          {importProgress > 0 && (
+            <div className="bg-zinc-800 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-green-500 h-2 transition-all"
+                className="bg-primary h-2 transition-all duration-300"
                 style={{ width: `${importProgress}%` }}
               ></div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
       {/* Modal */}
       {editingAsset && (
         <AssetModal
@@ -384,8 +585,6 @@ export default function AssetTable() {
           }}
         />
       )}
-
-
     </div>
   );
 }

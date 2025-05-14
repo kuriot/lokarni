@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import axios from "axios";
-import AssetTable from "./AssetTable"; // ✅ Neue Komponente importieren
+import AssetTable from "./AssetTable"; 
 
 const PROTECTED_CATEGORY_TITLE = "General";
 const PROTECTED_SUBCATEGORIES = ["All Assets", "Favorites"];
@@ -52,9 +52,9 @@ export default function ManageContent() {
     try {
       await axios.post("/api/categories/bulk", payload);
       window.dispatchEvent(new Event("categories-updated"));
-      alert("Gespeichert ✅");
+      alert("Saved ✅");
     } catch {
-      alert("Fehler beim Speichern ❌");
+      alert("Error saving ❌");
     }
   };
 
@@ -87,7 +87,7 @@ export default function ManageContent() {
   const addNewCategory = () => {
     setCategories(prev => [
       ...prev,
-      { title: "Neue Kategorie", items: [{ name: "Neue Unterkategorie", icon: "🔹" }] }
+      { title: "New Category", items: [{ name: "New Subcategory", icon: "🔹" }] }
     ]);
   };
 
@@ -97,7 +97,7 @@ export default function ManageContent() {
         i === groupIndex
           ? {
               ...group,
-              items: [...group.items, { name: "Neue Unterkategorie", icon: "🔹" }]
+              items: [...group.items, { name: "New Subcategory", icon: "🔹" }]
             }
           : group
       )
@@ -123,7 +123,7 @@ export default function ManageContent() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Verwaltung</h2>
+      <h2 className="text-xl font-bold mb-4">Management</h2>
 
       <div className="flex gap-4 mb-4 border-b border-box pb-2">
         <button
@@ -132,7 +132,7 @@ export default function ManageContent() {
             activeTab === "assets" ? "bg-box text-primary" : "text-text hover:text-primary"
           }`}
         >
-          Assets verwalten
+          Manage Assets
         </button>
         <button
           onClick={() => setActiveTab("categories")}
@@ -140,7 +140,7 @@ export default function ManageContent() {
             activeTab === "categories" ? "bg-box text-primary" : "text-text hover:text-primary"
           }`}
         >
-          Kategorien verwalten
+          Manage Categories
         </button>
       </div>
 
@@ -153,7 +153,7 @@ export default function ManageContent() {
               onClick={handleSave}
               className="px-5 py-2 bg-primary text-background rounded hover:bg-opacity-80"
             >
-              Änderungen speichern
+              Save Changes
             </button>
           </div>
 
@@ -264,7 +264,7 @@ export default function ManageContent() {
                                       onClick={() => addNewItem(groupIndex)}
                                       className="text-xs text-primary hover:underline mt-2"
                                     >
-                                      + Unterkategorie
+                                      + Subcategory
                                     </button>
                                   </li>
                                 )}
@@ -286,7 +286,7 @@ export default function ManageContent() {
               onClick={addNewCategory}
               className="flex items-center gap-2 text-sm text-primary hover:text-white"
             >
-              <Plus size={16} /> Neue Kategorie hinzufügen
+              <Plus size={16} /> Add New Category
             </button>
           </div>
         </>

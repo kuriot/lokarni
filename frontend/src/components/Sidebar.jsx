@@ -1,19 +1,38 @@
 import { useState, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
-import { Github, Coffee, MessageCircle, Plus } from "lucide-react";
+import { Github, Coffee, MessageCircle, Plus, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import axios from "axios";
 import Logo from "../assets/logo.svg";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar({ onSelectCategory }) {
   const [active, setActive] = useState("All Assets");
   const [groups, setGroups] = useState([]);
+  const [openGroups, setOpenGroups] = useState({});
 
   const specialViews = {
-    Manage: LucideIcons.FolderCog,
-    Settings: LucideIcons.Settings,
-    Search: LucideIcons.Search,
+    Add: { icon: Plus, label: "Add", color: "text-emerald-500", bgColor: "hover:bg-emerald-500/10" },
+    Manage: { icon: LucideIcons.FolderCog, label: "Manage", color: "text-amber-500", bgColor: "hover:bg-amber-500/10" },
+    Settings: { icon: LucideIcons.Settings, label: "Settings", color: "text-blue-500", bgColor: "hover:bg-blue-500/10" },
+    Search: { icon: LucideIcons.Search, label: "Search", color: "text-violet-500", bgColor: "hover:bg-violet-500/10" },
   };
 
   const loadCategories = () => {
@@ -36,6 +55,15 @@ export default function Sidebar({ onSelectCategory }) {
 
       const filtered = fetched.filter((g) => g.title !== "General");
       setGroups([staticGroup, ...filtered]);
+
+      // Auto-open the active group
+      const initialOpen = {};
+      [staticGroup, ...filtered].forEach((group) => {
+        if (group.items.some(item => item.name === active)) {
+          initialOpen[group.title] = true;
+        }
+      });
+      setOpenGroups(initialOpen);
     });
   };
 
@@ -52,144 +80,262 @@ export default function Sidebar({ onSelectCategory }) {
     if (["Manage", "Settings"].includes(active)) loadCategories();
   }, [active]);
 
-  const openGroup = groups.find((group) =>
-    group.items.some((item) => item.name === active)
-  )?.title;
+  const handleCategorySelect = (categoryName) => {
+    setActive(categoryName);
+    onSelectCategory(categoryName);
+  };
+
+  const toggleGroup = (groupTitle) => {
+    setOpenGroups(prev => ({
+      ...prev,
+      [groupTitle]: !prev[groupTitle]
+    }));
+  };
 
   return (
-    <aside className="w-64 bg-background text-text p-4 overflow-y-auto shadow-lg flex flex-col justify-between h-full">
-      <div>
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-6 group">
-          <img src={Logo} alt="Logo" className="w-12 h-12 drop-shadow-glow transition-transform group-hover:scale-110" />
-          <h2 className="text-3xl font-bold text-primary drop-shadow-glow text-center">Lokarni</h2>
-        </div>
-
-        {/* Actions */}
-        <div className="bg-background border border-primary text-primary rounded-md p-3 mb-8 flex justify-between items-center text-xs">
+    <TooltipProvider>
+      <aside className="w-72 bg-gradient-to-b from-background to-background/95 backdrop-blur-xl border-r border-border/50 flex flex-col h-full">
+        {/* Fixed Header */}
+        <div className="p-6 space-y-4 bg-background border-b border-border/50">
+          {/* Logo Section */}
           <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="relative group"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-center gap-3"
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onSelectCategory("Add")}
-              className={`text-primary hover:bg-border hover:text-foreground p-2 rounded-full transition`}
-            >
-              <Plus className="w-5 h-5" />
-            </Button>
-            <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-box text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 whitespace-nowrap">
-              Add new
-            </span>
+            <Avatar className="w-14 h-14">
+              <AvatarImage src={Logo} alt="Lokarni Logo" />
+              <AvatarFallback>LK</AvatarFallback>
+            </Avatar>
+            <div className="text-center">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Lokarni
+              </h2>
+              <Badge variant="secondary" className="mt-1">
+                <Sparkles className="w-3 h-3 mr-1" />
+                v2.0
+              </Badge>
+            </div>
           </motion.div>
 
-          {Object.entries(specialViews).map(([key, Icon]) => (
-            <motion.div
-              key={key}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              className="relative group"
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setActive(key);
-                  onSelectCategory(key);
-                }}
-                className={`p-2 rounded-full transition text-primary hover:bg-border hover:text-foreground ${
-                  active === key ? "bg-primary text-background" : ""
-                }`}
-              >
-                <Icon size={18} />
-              </Button>
-              <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-box text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 whitespace-nowrap">
-                {key === "Manage"
-                  ? "Verwalten"
-                  : key === "Settings"
-                  ? "Einstellungen"
-                  : "Suchen"}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Kategorien */}
-        <div className="mb-8">
-          {groups.map((group, index) => {
-            const isOpen = group.title === openGroup;
-            return (
-              <div key={`group-${index}-${group.title}`} className="mb-2">
-                <button
-                  onClick={() => {
-                    const newActive = group.items[0].name;
-                    setActive(newActive);
-                    onSelectCategory(newActive);
-                  }}
-                  className="w-full flex justify-between items-center text-sm text-gray-400 uppercase font-semibold mb-2 hover:text-primary transition"
-                >
-                  {group.title}
-                  {isOpen ? <LucideIcons.ChevronUp size={16} /> : <LucideIcons.ChevronDown size={16} />}
-                </button>
-
-                {isOpen && (
-                  <div className="space-y-1">
-                    {group.items.map((item, i) => {
-                      const Icon = LucideIcons[item.icon] || LucideIcons.Circle;
-                      return (
-                        <button
-                          key={`${group.title}-${i}-${item.name}`}
-                          onClick={() => {
-                            setActive(item.name);
-                            onSelectCategory(item.name);
-                          }}
-                          className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-md font-medium transition text-sm ${
-                            active === item.name
-                              ? "bg-box text-primary"
-                              : "hover:bg-box text-text hover:text-primary"
-                          }`}
+          {/* Quick Actions */}
+          <Card className="border-primary/20 bg-card/50 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-4 gap-2">
+                {Object.entries(specialViews).map(([key, { icon: Icon, label, color, bgColor }]) => (
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          variant={active === key ? "default" : "ghost"}
+                          size="icon"
+                          onClick={() => handleCategorySelect(key)}
+                          className={cn(
+                            "relative transition-all duration-200",
+                            active === key
+                              ? "bg-primary text-primary-foreground shadow-lg"
+                              : cn(bgColor, color)
+                          )}
                         >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                          <Icon className="w-5 h-5" />
+                          {active === key && (
+                            <motion.div
+                              layoutId="activeIndicator"
+                              className="absolute inset-0 bg-primary rounded-md -z-10"
+                              initial={false}
+                              transition={{ type: "spring", stiffness: 600 }}
+                            />
+                          )}
+                        </Button>
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-medium">
+                      <p>{label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
               </div>
-            );
-          })}
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-6 pt-4 border-t border-primary">
-        <div className="bg-background/50 p-4 rounded-lg text-sm font-medium text-primary space-y-2 shadow-inner border border-border">
-          <a href="https://github.com/Pixel-Arni" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
-            <Github size={16} /> Git
-          </a>
-          <a href="https://ko-fi.com/cranic" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
-            <Coffee size={16} /> Support me
-          </a>
-          <a href="https://discord.gg/Y42PRC3ffp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition">
-            <MessageCircle size={16} /> Discord
-          </a>
-          <hr className="border-t border-border my-2 opacity-50" />
-          <p className="text-xs text-gray-400 text-center">
-            Special thanks to{" "}
-            <a href="https://civitai.com/user/Astroburner" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline transition">
-              Astroburner
-            </a>
-          </p>
+        {/* Scrollable Categories */}
+        <ScrollArea className="flex-1 px-6">
+          <div className="py-6 space-y-3">
+            {groups.map((group, index) => {
+              const isOpen = openGroups[group.title] ?? false;
+              
+              return (
+                <Collapsible
+                  key={`group-${index}-${group.title}`}
+                  open={isOpen}
+                  onOpenChange={() => toggleGroup(group.title)}
+                >
+                  <Card className="border-border/50 bg-card/30 backdrop-blur overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between p-4 hover:bg-accent/50"
+                      >
+                        <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                          {group.title}
+                        </span>
+                        <motion.div
+                          animate={{ rotate: isOpen ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        </motion.div>
+                      </Button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="px-4 pb-4 space-y-1"
+                          >
+                            {group.items.map((item, i) => {
+                              const Icon = LucideIcons[item.icon] || LucideIcons.Circle;
+                              const isActive = active === item.name;
+                              
+                              return (
+                                <motion.button
+                                  key={`${group.title}-${i}-${item.name}`}
+                                  whileHover={{ x: 4 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => handleCategorySelect(item.name)}
+                                  className={cn(
+                                    "flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200",
+                                    isActive
+                                      ? "bg-primary text-primary-foreground shadow-md"
+                                      : "hover:bg-accent text-muted-foreground hover:text-foreground"
+                                  )}
+                                >
+                                  <Icon className="w-4 h-4" />
+                                  <span className="text-sm font-medium">{item.name}</span>
+                                  {isActive && (
+                                    <motion.div
+                                      layoutId="categoryActive"
+                                      className="ml-auto w-1.5 h-4 bg-primary-foreground rounded-full"
+                                      initial={false}
+                                      transition={{ type: "spring", stiffness: 400 }}
+                                    />
+                                  )}
+                                </motion.button>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        {/* Fixed Footer */}
+        <div className="p-4 border-t border-border/50 backdrop-blur bg-background">
+          <Card className="border-primary/20 bg-card/50">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-around">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="hover:text-primary transition-colors"
+                    >
+                      <a href="https://github.com/Pixel-Arni" target="_blank" rel="noopener noreferrer">
+                        <Github className="w-5 h-5" />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>GitHub</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.05, 1],
+                        opacity: [0.8, 1, 0.8],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        className="hover:text-primary transition-colors"
+                      >
+                        <a href="https://ko-fi.com/cranic" target="_blank" rel="noopener noreferrer">
+                          <Coffee className="w-5 h-5 text-pink-500" />
+                        </a>
+                      </Button>
+                    </motion.div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Support</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="hover:text-primary transition-colors"
+                    >
+                      <a href="https://discord.gg/Y42PRC3ffp" target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="w-5 h-5" />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Discord</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              
+              <Separator className="opacity-50" />
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Special thanks to{" "}
+                <a
+                  href="https://civitai.com/user/Astroburner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline transition-colors"
+                >
+                  Astroburner
+                </a>
+              </p>
+              
+              <p className="text-[10px] text-center text-muted-foreground/60">
+                Built with 💜 by Arni aka. Cranic
+              </p>
+            </CardContent>
+          </Card>
         </div>
-        <p className="mt-3 text-center text-[10px] text-muted-foreground">
-          Built by Arni aka. Cranic
-        </p>
-      </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   );
 }

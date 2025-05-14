@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 # 🔹 Für API-Antworten (GET)
 class Asset(BaseModel):
@@ -26,9 +26,17 @@ class Asset(BaseModel):
     nsfw_level: str
     media_files: List[str] = []
     download_url: str
+    
+    # Custom fields für Metadaten - Optional mit None als Default
+    custom_fields: Optional[Dict[str, str]] = None
 
     class Config:
         from_attributes = True
+        
+    # Validator um None zu {} zu konvertieren
+    @classmethod
+    def dict_default(cls, custom_fields):
+        return custom_fields or {}
 
 # 🔹 Für neue Einträge (POST)
 class AssetCreate(BaseModel):
@@ -54,6 +62,9 @@ class AssetCreate(BaseModel):
     media_files: List[str] = []
     download_url: str = ""
     is_favorite: bool = False
+    
+    # Custom fields für Metadaten
+    custom_fields: Dict[str, str] = {}
 
     class Config:
         from_attributes = True
@@ -79,12 +90,15 @@ class AssetUpdate(BaseModel):
     media_files: Optional[List[str]] = None
     download_url: Optional[str] = None
     is_favorite: Optional[bool] = None
+    used_resources: Optional[str] = None
+    
+    # Custom fields für Metadaten
+    custom_fields: Optional[Dict[str, str]] = None
 
     class Config:
         from_attributes = True
 
 # 🔸 Subkategorie (Basis)
-    used_resources: Optional[str] = None
 class SubCategoryBase(BaseModel):
     name: str
     icon: str

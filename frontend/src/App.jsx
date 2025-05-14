@@ -1,10 +1,18 @@
-// 📄 frontend/src/App.jsx
-
 import { useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import AssetGrid from "./components/AssetGrid";
 import AssetModal from "./components/AssetModal";
-import { LayoutGrid, LayoutPanelTop } from "lucide-react";
+import { LayoutGrid, Columns } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 import AddContent from "./content/AddContent";
 import ManageContent from "./content/ManageContent";
@@ -12,7 +20,7 @@ import SettingsContent from "./content/SettingsContent";
 import SearchContent from "./content/SearchContent";
 
 export default function App() {
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState("All Assets");
   const [assets, setAssets] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [layout, setLayout] = useState(() => {
@@ -22,10 +30,10 @@ export default function App() {
   const fetchAssets = () => {
     let param = "";
 
-    if (category === "Favoriten") {
+    if (category === "Favorites") {
       param = "?favorite=true";
     } else if (
-      category === "All" ||
+      category === "All Assets" ||
       ["Add", "Manage", "Settings", "Search"].includes(category)
     ) {
       param = "";
@@ -35,12 +43,12 @@ export default function App() {
 
     fetch(`http://localhost:8000/api/assets${param}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Serverantwort war nicht OK");
+        if (!res.ok) throw new Error("Server response was not OK");
         return res.json();
       })
       .then((data) => setAssets(Array.isArray(data) ? data : []))
       .catch((err) =>
-        console.error("Fehler beim Laden der Assets:", err.message)
+        console.error("Error loading assets:", err.message)
       );
   };
 
@@ -64,58 +72,111 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      <Sidebar onSelectCategory={setCategory} />
-      <main className="flex-1 p-6 overflow-auto bg-background">
-        <header className="mb-6 flex items-center justify-between">
-          <h2
-            className="font-normal"
-            style={{
-              color: "rgb(226, 242, 99)",
-              fontSize: "22px",
-              lineHeight: "1.3",
-            }}
-          >
-            {category}
-          </h2>
-          <button
-            onClick={toggleLayout}
-            className="border border-[#e2f263] text-[#e2f263] rounded-lg p-2 hover:bg-[#e2f26320] transition"
-            title="Change layout"
-          >
-            {layout === "grid" ? (
-              <LayoutPanelTop className="w-5 h-5" />
-            ) : (
-              <LayoutGrid className="w-5 h-5" />
-            )}
-          </button>
-        </header>
+    <TooltipProvider>
+      <div className="flex h-screen bg-background text-foreground">
+        <Sidebar onSelectCategory={setCategory} />
+        
+        <main className="flex-1 overflow-hidden flex flex-col">
+          {/* Header */}
+          <header className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-4">
+                <motion.h1
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-2xl font-bold"
+                >
+                  {category}
+                </motion.h1>
+                {!["Add", "Manage", "Settings", "Search"].includes(category) && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {assets.length} items
+                    </span>
+                  </motion.div>
+                )}
+              </div>
 
-        {category === "Add" && <AddContent />}
-        {category === "Manage" && <ManageContent />}
-        {category === "Settings" && <SettingsContent />}
-        {category === "Search" && <SearchContent />}
+              {!["Add", "Manage", "Settings", "Search"].includes(category) && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Toggle
+                          pressed={layout === "grid"}
+                          onPressedChange={() => setLayout("grid")}
+                          className={cn(
+                            "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          )}
+                        >
+                          <LayoutGrid className="w-4 h-4" />
+                        </Toggle>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Grid Layout</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-        {!["Add", "Manage", "Settings", "Search"].includes(category) && (
-          <>
-            <AssetGrid
-              assets={assets}
-              setAssets={setAssets}
-              onSelect={setSelectedAsset}
-              onlyFavorites={category === "Favoriten"}
-              category={category}
-              layout={layout}
-            />
-            {selectedAsset && (
-              <AssetModal
-                asset={selectedAsset}
-                onClose={() => setSelectedAsset(null)}
-                onUpdate={handleUpdate}
-              />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Toggle
+                          pressed={layout === "masonry"}
+                          onPressedChange={() => setLayout("masonry")}
+                          className={cn(
+                            "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          )}
+                        >
+                          <Columns className="w-4 h-4" />
+                        </Toggle>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Masonry Layout</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="flex-1 overflow-auto p-6">
+            {category === "Add" && <AddContent />}
+            {category === "Manage" && <ManageContent />}
+            {category === "Settings" && <SettingsContent />}
+            {category === "Search" && <SearchContent />}
+
+            {!["Add", "Manage", "Settings", "Search"].includes(category) && (
+              <>
+                <AssetGrid
+                  assets={assets}
+                  setAssets={setAssets}
+                  onSelect={setSelectedAsset}
+                  onlyFavorites={category === "Favorites"}
+                  category={category}
+                  layout={layout}
+                />
+                
+                {selectedAsset && (
+                  <AssetModal
+                    asset={selectedAsset}
+                    onClose={() => setSelectedAsset(null)}
+                    onUpdate={handleUpdate}
+                  />
+                )}
+              </>
             )}
-          </>
-        )}
-      </main>
-    </div>
+          </div>
+        </main>
+      </div>
+    </TooltipProvider>
   );
 }
