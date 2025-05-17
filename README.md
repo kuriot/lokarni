@@ -25,32 +25,10 @@ With this, LokArni becomes your personal **AI knowledge and media library**.
 
 - **Media Library:** Organize AI assets such as models, images, videos, and metadata
 - **CivitAI Import:** Import models and metadata directly from CivitAI
-- **ZIP Import/Export:** Import and export assets and media as ZIP archives
 - **Favorites & Categories:** Mark and structure assets
 - **Search & Filter:** Find assets quickly
 - **Modern Frontend:** React + Tailwind + Vite
 - **API-first Backend:** FastAPI + SQLite
-
----
-
-## 🏗️ Project Structure
-
-```
-LokArni/
-├── backend/         # FastAPI backend (API, DB, models)
-├── frontend/        # React frontend (components, pages)
-├── import/          # Media storage (e.g. images, videos)
-├── start_lokarni.bat         # Starts frontend and backend automatically
-├── frontend_start.bat        # Starts frontend only
-├── backend_start.bat         # Starts backend only
-├── requirements.txt          # Python dependencies
-├── package.json              # Frontend dependencies
-├── README.md / README_en.md  # Documentation
-├── LokArni_Kurzeinstieg.md   # Quickstart guide (DE)
-├── LICENSE
-├── .gitignore
-```
-
 ---
 
 ## ⚡️ Quickstart
@@ -59,29 +37,22 @@ LokArni/
    - Python 3.10+
    - Node.js 18+ & npm
 
-2. **To start:**  
-   - Run `start_lokarni.bat` (Windows).  
-     → This automatically starts backend & frontend and opens the app in your browser.
-   - On first start, all required dependencies are automatically downloaded and installed.
 
-3. **Manual start (if needed):**
-   ```bash
-   # Backend
-   cd backend
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r ../requirements.txt
-   uvicorn main:app --reload
 
-   # Frontend
-   cd frontend
-   npm install
-   npm run dev
+2. **Install in first time (important):**
+- Run backend_start.bat
+- Run frontend_start.bat
+- On first start, all required dependencies are automatically downloaded and installed.
+
    ```
-
    - Frontend: http://localhost:5173  
    - Backend API: http://localhost:8000
 
+
+3. **To start:**  
+   - Run `start_lokarni.bat` (Windows).  
+     → This automatically starts backend & frontend and opens the app in your browser.
+     
 ---
 
 ## 📦 Content Types
@@ -92,18 +63,6 @@ LokArni/
 
 ---
 
-## 🔗 API Endpoints (Excerpt)
-
-- `GET /api/assets` – List all assets
-- `POST /api/assets` – Create new asset
-- `GET /api/categories` – Fetch categories
-- `POST /api/import/civitai` – Import from CivitAI
-- `POST /api/import/zip` – ZIP import
-- `POST /api/upload` – File upload
-
-For the full API documentation, open `/docs` (Swagger) when the backend is running.
-
----
 
 ## 📝 Planned Features & To-dos
 
