@@ -33,6 +33,7 @@ class Asset(Base):
     media_files = Column(JSON, default=[])
     
     custom_fields = Column(JSON, nullable=True, default={})
+    linked_assets = Column(JSON, default=[])
 
 
     # 🔗 Beziehung zur SubCategory
