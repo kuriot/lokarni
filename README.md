@@ -107,11 +107,7 @@ For the full API documentation, open `/docs` (Swagger) when the backend is runni
 
 ## 📝 Planned Features & To-dos
 
-- [ ] **Editable assets:** Directly edit all asset fields in the UI
 - [ ] **Improved user experience and error handling**
-- [ ] **Settings panel:** Manage API key, language, etc. directly in the UI
-- [ ] **Multilanguage:** Interface in English/German
-- [ ] **Admin panels:** Manage categories as admin
 
 ---
 
