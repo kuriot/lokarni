@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
+import { Search, X, Filter, Hash, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import AssetGrid from "../components/AssetGrid";
 import AssetModal from "../components/AssetModal";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 export default function SearchContent() {
   const [query, setQuery] = useState("");
@@ -9,6 +15,7 @@ export default function SearchContent() {
   const [results, setResults] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [categories, setCategories] = useState(["All"]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Unterkategorien laden
   useEffect(() => {
@@ -48,6 +55,7 @@ export default function SearchContent() {
   // Assets laden
   useEffect(() => {
     const loadResults = async () => {
+      setIsLoading(true);
       try {
         const res = await fetch(
           `http://localhost:8000/api/assets/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`
@@ -56,6 +64,8 @@ export default function SearchContent() {
         setResults(data);
       } catch (err) {
         console.error("Fehler bei der Suche:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadResults();
@@ -71,62 +81,170 @@ export default function SearchContent() {
   const resetSearch = () => setQuery("");
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4">
-      {/* Suchleiste mit Dropdown und Reset */}
-      <div className="flex justify-center gap-4 mb-6 flex-wrap items-center">
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm pr-6"
-          style={{ paddingRight: "2rem" }} // etwas mehr Platz für Pfeil
+    <div className="w-full px-4 space-y-6">
+      {/* Suchkopf */}
+      <Card className="border-zinc-800 bg-zinc-900/30 backdrop-blur-sm overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex items-center mb-4">
+            <Sparkles className="w-5 h-5 text-primary mr-2" />
+            <h2 className="text-xl font-semibold">Asset Search</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-8 gap-4">
+            {/* Kategorie-Auswahl */}
+            <div className="lg:col-span-2">
+              <label className="text-xs text-zinc-500 mb-1.5 block">
+                <Filter className="w-3.5 h-3.5 inline mr-1.5" />
+                Category Filter
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-zinc-800/70 border-zinc-700 rounded-md h-12 px-3 text-sm text-white focus:ring-1 focus:ring-primary"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Suchfeld */}
+            <div className="lg:col-span-6 relative">
+              <label className="text-xs text-zinc-500 mb-1.5 block">
+                <Search className="w-3.5 h-3.5 inline mr-1.5" />
+                Search Query
+              </label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Enter keywords to search..."
+                  className="w-full bg-zinc-800/70 border-zinc-700 focus-visible:ring-primary pl-10 pr-10 h-12 text-base"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-5 h-5" />
+                
+                {query && (
+                  <motion.button 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                    onClick={resetSearch}
+                  >
+                    <X className="w-5 h-5" />
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Keyword-Wolke */}
+          <AnimatePresence>
+            {keywords.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mt-4 pt-4 border-t border-zinc-800"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Hash className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-medium text-zinc-400">Popular Tags</h3>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {keywords.map(({ word, count }, index) => (
+                    <motion.div
+                      key={word}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1,
+                        transition: { delay: index * 0.02 }
+                      }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer bg-primary/5 hover:bg-primary/10 border-primary/30 transition-colors hover:text-white px-3 py-1"
+                        onClick={() => handleKeywordClick(word)}
+                      >
+                        {word}
+                        <span className="ml-1.5 text-xs text-zinc-500">({count})</span>
+                      </Badge>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+      
+      {/* Ergebnisbereich */}
+      <div className="space-y-4">
+        {/* Ergebnisüberschrift */}
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-lg font-medium text-zinc-300">
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                Searching...
+              </span>
+            ) : (
+              <span>
+                {results.length} results found
+                {query && <span className="text-zinc-500 ml-2 text-sm">for "{query}"</span>}
+                {category !== "All" && <span className="text-zinc-500 ml-2 text-sm">in {category}</span>}
+              </span>
+            )}
+          </h2>
+        </div>
+        
+        {/* Ergebnisse im Grid */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full"
         >
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
+          <AssetGrid
+            assets={results}
+            setAssets={setResults}
+            onSelect={setSelectedAsset}
+            layout="grid" // Sicherstellen, dass wir das Grid-Layout verwenden
+          />
+        </motion.div>
 
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Suchbegriff eingeben..."
-          className="w-full max-w-2xl p-3 rounded bg-zinc-900 text-white border border-zinc-700 shadow-sm text-center text-lg"
-        />
-
-        <button
-          onClick={resetSearch}
-          disabled={!query.trim()}
-          className={`px-4 py-2 rounded text-sm transition ${
-            query.trim()
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "bg-zinc-800 text-gray-400 cursor-default"
-          }`}
-        >
-          Zurücksetzen
-        </button>
-      </div>
-
-      {/* Keyword-Wolke */}
-      <div className="flex flex-wrap gap-2 justify-center mb-8">
-        {keywords.map(({ word, count }) => (
-          <button
-            key={word}
-            onClick={() => handleKeywordClick(word)}
-            className="bg-box text-sm px-3 py-1 rounded-full text-primary border border-primary hover:bg-primary hover:text-background transition"
+        {/* Keine Ergebnisse */}
+        {!isLoading && results.length === 0 && query && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="py-12 text-center"
           >
-            {word} <span className="text-gray-400 ml-1">({count})</span>
-          </button>
-        ))}
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg py-8 px-6 max-w-md mx-auto">
+              <Search className="w-12 h-12 mx-auto mb-4 text-zinc-700" />
+              <h3 className="text-lg font-medium text-zinc-300">No results found</h3>
+              <p className="text-zinc-500 mt-2">
+                Try adjusting your search terms or filter to find what you're looking for.
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4 border-zinc-700 hover:bg-zinc-800"
+                onClick={resetSearch}
+              >
+                Clear Search
+              </Button>
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* Ergebnis-Grid */}
-      <AssetGrid
-        assets={results}
-        setAssets={setResults}
-        onSelect={setSelectedAsset}
-      />
-
-      {/* Modal */}
+      {/* Asset Modal */}
       {selectedAsset && (
         <AssetModal
           asset={selectedAsset}

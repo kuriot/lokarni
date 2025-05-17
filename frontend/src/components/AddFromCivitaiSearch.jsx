@@ -1,5 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { 
+  Search, 
+  Download, 
+  Globe, 
+  Star, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Loader, 
+  X, 
+  SortDesc,
+  FileUp,
+  Key
+} from "lucide-react";
 
 // Separate Modal components for better structure and reusability
 function ModalOverlay({ children, onClose }) {
@@ -50,11 +64,11 @@ function ModalContent({ model, onClose, onImportSuccess }) {
         api_key: apiKey
       });
       
-      setMessage(`✅ Successfully imported: ${res.data.name}`);
+      setMessage(`Successfully imported: ${res.data.name}`);
       if (onImportSuccess) onImportSuccess(res.data);
     } catch (err) {
       const msg = err.response?.data?.detail || err.message || JSON.stringify(err);
-      setMessage(`❌ Import error: ${msg}`);
+      setMessage(`Import error: ${msg}`);
     } finally {
       setImporting(false);
     }
@@ -89,20 +103,33 @@ function ModalContent({ model, onClose, onImportSuccess }) {
                 href={`https://civitai.com/models/${model.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-muted text-foreground px-4 py-2 rounded font-semibold hover:bg-muted/80"
+                className="bg-muted text-foreground px-4 py-2 rounded font-semibold hover:bg-muted/80 flex items-center gap-2"
               >
-                🌐 View on CivitAI
+                <Globe className="w-4 h-4" /> View on CivitAI
               </a>
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="bg-primary text-background px-4 py-2 rounded font-semibold hover:bg-primary/80 disabled:opacity-50"
+                className="bg-primary text-background px-4 py-2 rounded font-semibold hover:bg-primary/80 disabled:opacity-50 flex items-center gap-2"
               >
-                {importing ? "⏳ Importing..." : "📥 Import"}
+                {importing ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" /> Importing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" /> Import
+                  </>
+                )}
               </button>
             </div>
             {message && (
-              <p className={`text-sm mt-2 ${message.startsWith("✅") ? "text-green-400" : "text-red-400"}`}>
+              <p className={`text-sm mt-2 flex items-center gap-1 ${message.startsWith("Successfully") ? "text-green-400" : "text-red-400"}`}>
+                {message.startsWith("Successfully") ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
                 {message}
               </p>
             )}
@@ -111,7 +138,7 @@ function ModalContent({ model, onClose, onImportSuccess }) {
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-colors"
               title="Close"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -156,7 +183,7 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
       setResults([]);
       setPage(1);
       setHasMore(false);
-      setMessage("🔎 Searching...");
+      setMessage("searching");
       setSelectedModel(null);
     }
 
@@ -168,7 +195,7 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
     try {
       // No search term? Don't search.
       if (!searchTerm.trim()) {
-        setMessage("❌ Please enter a search term");
+        setMessage("error-empty");
         return;
       }
 
@@ -183,7 +210,7 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
       console.log(`Received results: ${newItems.length}`);
 
       if (newItems.length === 0) {
-        setMessage("ℹ️ No results found");
+        setMessage("no-results");
         setHasMore(false);
         return;
       }
@@ -208,10 +235,10 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
       setHasMore(false);
       
       const totalCount = reset ? uniqueResults.length : results.length + uniqueResults.length;
-      setMessage(`✅ ${totalCount} results loaded`);
+      setMessage(`success-${totalCount}`);
     } catch (err) {
       console.error("Search error:", err);
-      setMessage(`❌ Error: ${err.response?.data?.detail || err.message || "Unknown error"}`);
+      setMessage(`error-${err.response?.data?.detail || err.message || "Unknown error"}`);
       setHasMore(false);
     }
   };
@@ -219,49 +246,108 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
   const isImage = (url) => url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
   const isVideo = (url) => url?.endsWith(".mp4") || url?.endsWith(".webm");
 
+  const renderMessageWithIcon = () => {
+    if (!message) return null;
+
+    if (message === "searching") {
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-blue-400">
+          <Loader className="w-4 h-4 animate-spin" />
+          Searching...
+        </p>
+      );
+    } else if (message === "error-empty") {
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-red-400">
+          <XCircle className="w-4 h-4" />
+          Please enter a search term
+        </p>
+      );
+    } else if (message === "no-results") {
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-blue-400">
+          <AlertCircle className="w-4 h-4" />
+          No results found
+        </p>
+      );
+    } else if (message.startsWith("success-")) {
+      const count = message.split("-")[1];
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-green-400">
+          <CheckCircle className="w-4 h-4" />
+          {count} results loaded
+        </p>
+      );
+    } else if (message.startsWith("error-")) {
+      const error = message.substring(6);
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-red-400">
+          <XCircle className="w-4 h-4" />
+          Error: {error}
+        </p>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="mb-6">
       <div className="bg-box p-6 rounded-md shadow-md mb-6">
         <h2 className="text-lg font-bold mb-4">Search CivitAI</h2>
 
-        <input
-          type="text"
-          placeholder="Search term (e.g. SDXL, anime...)"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-900 text-white border border-zinc-700 mb-4"
-        />
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="w-5 h-5 text-zinc-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search term (e.g. SDXL, anime...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-2 pl-10 rounded bg-zinc-900 text-white border border-zinc-700"
+            />
+          </div>
+          
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Key className="w-5 h-5 text-zinc-500" />
+            </div>
+            <input
+              type="password"
+              placeholder="Optional: CivitAI API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="w-full p-2 pl-10 rounded bg-zinc-900 text-white border border-zinc-700"
+            />
+          </div>
 
-        <input
-          type="text"
-          placeholder="Optional: CivitAI API Key"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-900 text-white border border-zinc-700 mb-4"
-        />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <SortDesc className="w-5 h-5 text-zinc-500" />
+            </div>
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="w-full p-2 pl-10 rounded bg-zinc-900 text-white border border-zinc-700 appearance-none"
+            >
+              <option value="Most Downloaded">Most Downloaded</option>
+              <option value="Newest">Newest</option>
+              <option value="Highest Rated">Highest Rated</option>
+            </select>
+          </div>
 
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-900 text-white border border-zinc-700 mb-4"
-        >
-          <option value="Most Downloaded">📥 Most Downloaded</option>
-          <option value="Newest">🆕 Newest</option>
-          <option value="Highest Rated">⭐ Highest Rated</option>
-        </select>
+          <button
+            onClick={() => handleSearch(true)}
+            className="w-full bg-primary text-background font-semibold px-4 py-2 rounded hover:bg-primary/80 transition flex items-center justify-center gap-2"
+          >
+            <Search className="w-5 h-5" />
+            Search (shows up to 40 top results)
+          </button>
 
-        <button
-          onClick={() => handleSearch(true)}
-          className="bg-primary text-background font-semibold px-4 py-2 rounded hover:bg-opacity-90 transition"
-        >
-          🔍 Search (shows up to 40 top results)
-        </button>
-
-        {message && (
-          <p className={`text-sm mt-2 ${message.startsWith("✅") ? "text-green-400" : message.startsWith("ℹ️") ? "text-blue-400" : "text-red-400"}`}>
-            {message}
-          </p>
-        )}
+          {renderMessageWithIcon()}
+        </div>
       </div>
 
       {results.length > 0 && (

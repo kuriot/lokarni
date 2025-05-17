@@ -1,29 +1,54 @@
 @echo off
 title Lokarni Backend
 
-REM Setze Projektverzeichnis
-set "PROJECT_DIR=%~dp0"
-cd /d "%PROJECT_DIR%"
-
-REM Prüfen, ob venv existiert
-if not exist "venv\Scripts\activate.bat" (
-    echo [1/5] Erstelle virtuelle Umgebung...
-    python -m venv venv
+echo [1/5] Überprüfe Python-Installation...
+python --version
+if %ERRORLEVEL% neq 0 (
+    echo Fehler: Python ist nicht installiert oder nicht im PATH!
+    echo Bitte installieren Sie Python und stellen Sie sicher, dass es im PATH ist.
+    pause
+    exit /b 1
 )
 
-REM Aktivieren der virtuellen Umgebung
-echo [2/5] Aktiviere virtuelle Umgebung...
+echo [2/5] Entferne alte virtuelle Umgebung (falls vorhanden)...
+if exist venv (
+    rmdir /s /q venv
+    if %ERRORLEVEL% neq 0 (
+        echo Fehler beim Entfernen der alten virtuellen Umgebung!
+        echo Versuchen Sie, den Ordner manuell zu löschen und starten Sie das Skript erneut.
+        pause
+        exit /b 1
+    )
+)
+
+echo [3/5] Erstelle neue virtuelle Umgebung...
+python -m venv venv
+if %ERRORLEVEL% neq 0 (
+    echo Fehler beim Erstellen der virtuellen Umgebung!
+    echo Bitte stellen Sie sicher, dass Sie Schreibrechte im aktuellen Verzeichnis haben.
+    pause
+    exit /b 1
+)
+
+echo [4/5] Installiere Abhängigkeiten...
 call venv\Scripts\activate.bat
+if %ERRORLEVEL% neq 0 (
+    echo Fehler beim Aktivieren der virtuellen Umgebung!
+    pause
+    exit /b 1
+)
 
-REM Installiere Abhängigkeiten
-echo [3/5] Installiere Backend-Abhängigkeiten...
-pip install --upgrade pip >nul
-pip install -r requirements.txt
+echo Aktualisiere pip...
+python -m pip install --upgrade pip
 
-REM Starte Backend
-echo [4/5] Starte Backend...
+echo Installiere Abhängigkeiten aus requirements.txt...
+python -m pip install -r requirements.txt
+if %ERRORLEVEL% neq 0 (
+    echo Fehler beim Installieren der Abhängigkeiten!
+    pause
+    exit /b 1
+)
+
+echo [5/5] Starte Backend...
 python -m uvicorn backend.main:app --port 8000 --reload
-
-REM Offen lassen
-echo [5/5] Backend wurde beendet. Drücke eine Taste zum Schließen...
 pause

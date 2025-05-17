@@ -12,21 +12,57 @@ def update_asset(asset_id: int, asset_data: schemas.AssetUpdate, db: Session = D
     if not db_asset:
         raise HTTPException(status_code=404, detail="Asset nicht gefunden")
 
-    for field, value in asset_data.dict(exclude_unset=True).items():
+    # Get the data as a dictionary with only set fields
+    update_data = asset_data.dict(exclude_unset=True)
+    
+    # Debug: Print what data is being received
+    print(f"Update data for asset {asset_id}: {update_data}")
+    
+    # Special handling for linked_assets - it might be coming in as full asset objects
+    # but we only want to store the IDs
+    if 'linked_assets' in update_data:
+        linked_assets = update_data['linked_assets']
+        
+        # Wenn linked_assets None ist, setze es auf eine leere Liste
+        if linked_assets is None:
+            update_data['linked_assets'] = []
+            print(f"Leere linked_assets Liste gesetzt (None)")
+        # Wenn linked_assets eine leere Liste ist, behalte sie bei
+        elif isinstance(linked_assets, list) and len(linked_assets) == 0:
+            update_data['linked_assets'] = []
+            print(f"Leere linked_assets Liste beibehalten")
+        # Wenn wir vollständige Asset-Objekte statt nur IDs erhalten haben, extrahiere die IDs
+        elif isinstance(linked_assets, list):
+            # Prüfe, ob es sich um eine Liste von Objekten mit 'id' handelt
+            if len(linked_assets) > 0 and isinstance(linked_assets[0], dict) and 'id' in linked_assets[0]:
+                # Konvertiere Liste von Asset-Objekten zu Liste von Asset-IDs
+                update_data['linked_assets'] = [asset['id'] for asset in linked_assets if isinstance(asset, dict) and 'id' in asset]
+                print(f"Konvertierte linked_assets zu IDs: {update_data['linked_assets']}")
+            # Wenn es bereits eine Liste von IDs ist, konvertiere String-IDs zu Integer
+            elif all(isinstance(item, (int, str)) for item in linked_assets):
+                # Konvertiere String-IDs zu Integer-IDs
+                update_data['linked_assets'] = [int(item) if isinstance(item, str) and item.isdigit() else item for item in linked_assets]
+                print(f"linked_assets ist bereits eine Liste von IDs: {update_data['linked_assets']}")
+            # Für andere Formate, setze auf leere Liste
+            else:
+                update_data['linked_assets'] = []
+                print(f"Unbekanntes Format für linked_assets, setze auf leere Liste")
+        # Für andere Typen, setze auf leere Liste
+        else:
+            update_data['linked_assets'] = []
+            print(f"linked_assets ist kein gültiges Format, setze auf leere Liste")
+    
+    # Apply all updates
+    for field, value in update_data.items():
         setattr(db_asset, field, value)
 
+    # Commit changes to database
     db.commit()
     db.refresh(db_asset)
-    return db_asset
-
-@router.delete("/{asset_id}", response_model=schemas.Asset)
-def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
-    db_asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
-    if not db_asset:
-        raise HTTPException(status_code=404, detail="Asset nicht gefunden")
-
-    db.delete(db_asset)
-    db.commit()
+    
+    # Debug: Print the asset after update
+    print(f"Updated asset: {db_asset.id}, linked_assets: {db_asset.linked_assets}")
+    
     return db_asset
 
 @router.patch("/{asset_id}/favorite", response_model=schemas.Asset)
@@ -226,12 +262,34 @@ def get_asset(asset_id: int, db: Session = Depends(database.get_db)):
     asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset nicht gefunden")
+    
+    # Stelle sicher, dass linked_assets eine Liste ist
+    if asset.linked_assets is None:
+        asset.linked_assets = []
+    elif not isinstance(asset.linked_assets, list):
+        print(f"Warnung: linked_assets für Asset {asset_id} ist kein gültiges Format: {type(asset.linked_assets)}")
+        asset.linked_assets = []
+    
+    # If the asset has linked_assets IDs, fetch the full assets
+    if asset.linked_assets and len(asset.linked_assets) > 0:
+        # This is a simple approach - in production, you might want to use a JOIN
+        linked_assets_full = []
+        for linked_id in asset.linked_assets:
+            try:
+                # Konvertiere linked_id zu int, falls es ein String ist
+                if isinstance(linked_id, str) and linked_id.isdigit():
+                    linked_id = int(linked_id)
+                
+                if isinstance(linked_id, int):
+                    linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_id).first()
+                    if linked_asset:
+                        linked_assets_full.append(linked_asset)
+                else:
+                    print(f"Ungültiger linked_id Typ: {type(linked_id)} - Wert: {linked_id}")
+            except Exception as e:
+                print(f"Fehler beim Abrufen von linked_asset {linked_id}: {str(e)}")
+        
+        # Replace the IDs with full asset objects for the response
+        asset.linked_assets = linked_assets_full
+    
     return asset
-
-# 🌐 POST: Asset von CivitAI importieren
-router.add_api_route(
-    path="/from-civitai",
-    endpoint=import_from_civitai,
-    methods=["POST"],
-    response_model=schemas.Asset
-)

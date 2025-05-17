@@ -17,6 +17,7 @@ class Asset(BaseModel):
     used_resources: str
     is_favorite: bool
     subcategory_id: Optional[int]
+    linked_assets: Optional[List[int]] = None
 
     # 🆕 Erweiterte Felder von CivitAI
     slug: str
@@ -80,6 +81,7 @@ class AssetUpdate(BaseModel):
     positive_prompt: Optional[str] = None
     negative_prompt: Optional[str] = None
     subcategory_id: Optional[int] = None
+    linked_assets: Optional[List[int]] = None
 
     # 🆕 Erweiterbar
     slug: Optional[str] = None

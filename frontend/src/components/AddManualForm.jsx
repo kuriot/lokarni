@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Loader2, Save, Upload, Link, Image, FileText, MessageSquare, Settings2, 
   Tag, Plus, X, CheckCircle, XCircle, FolderOpen, Calendar, User, 
-  Globe, Download, Shield, Camera, AlertCircle 
+  Globe, Download, Shield, Camera, AlertCircle, Hash, Database
 } from "lucide-react";
 
 export default function AddManualForm({ onSave }) {
@@ -31,6 +31,21 @@ export default function AddManualForm({ onSave }) {
     download_url: "",
   });
 
+  // Custom fields for generation settings and model information
+  const [customFields, setCustomFields] = useState({
+    // Generation Settings
+    Steps: "",
+    Sampler: "",
+    "Guidance scale": "",
+    Seed: "",
+    Size: "",
+    // Model Information
+    "Model hash": "",
+    Model: "",
+    "LoRA hashes": "",
+    Version: "",
+  });
+
   const [mediaFiles, setMediaFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [urlInputs, setUrlInputs] = useState([""]);
@@ -43,6 +58,12 @@ export default function AddManualForm({ onSave }) {
   const [newTypeInput, setNewTypeInput] = useState("");
   const [isAddingType, setIsAddingType] = useState(false);
   const [isSubmittingType, setIsSubmittingType] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pendingNewTypes, setPendingNewTypes] = useState([]);
+  
+  // Refs for drag and drop
+  const fileInputRef = useRef(null);
+  const dropZoneRef = useRef(null);
 
   useEffect(() => {
     fetchAvailableTypes();
@@ -55,20 +76,24 @@ export default function AddManualForm({ onSave }) {
       
       if (response.ok) {
         const data = await response.json();
-        setAvailableTypes(data);
+        // Füge auch alle pendingNewTypes hinzu
+        const allTypes = [...new Set([...data, ...pendingNewTypes])];
+        setAvailableTypes(allTypes);
       } else {
         console.error("Failed to load asset types");
-        setAvailableTypes([
+        const defaultTypes = [
           "Checkpoint", "LoRA", "Embedding", "Controlnet", 
           "Poses", "Wildcards", "LyCORIS", "Hypernetwork", "Other"
-        ]);
+        ];
+        setAvailableTypes([...new Set([...defaultTypes, ...pendingNewTypes])]);
       }
     } catch (error) {
       console.error("Error fetching asset types:", error);
-      setAvailableTypes([
+      const defaultTypes = [
         "Checkpoint", "LoRA", "Embedding", "Controlnet", 
         "Poses", "Wildcards", "LyCORIS", "Hypernetwork", "Other"
-      ]);
+      ];
+      setAvailableTypes([...new Set([...defaultTypes, ...pendingNewTypes])]);
     } finally {
       setIsLoadingTypes(false);
     }
@@ -79,23 +104,23 @@ export default function AddManualForm({ onSave }) {
     
     setIsSubmittingType(true);
     try {
-      const response = await fetch("http://localhost:8000/api/asset-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newTypeInput.trim() })
-      });
+      // Lokale Aktualisierung: Füge den neuen Typ zur lokalen Liste hinzu
+      const newType = newTypeInput.trim();
+      setPendingNewTypes(prev => [...prev, newType]);
       
-      if (response.ok) {
-        const updatedTypes = await response.json();
-        setAvailableTypes(updatedTypes);
-        setFormData(prev => ({ ...prev, type: newTypeInput.trim() }));
-        setNewTypeInput("");
-        setIsAddingType(false);
-      } else {
-        console.error("Failed to add new type");
-      }
-    } catch (error) {
-      console.error("Error adding new type:", error);
+      // Aktualisiere verfügbare Typen
+      setAvailableTypes(prev => [...prev, newType]);
+      
+      // Setze den neuen Typ direkt in das Formular
+      setFormData(prev => ({ ...prev, type: newType }));
+      
+      // UI zurücksetzen
+      setNewTypeInput("");
+      setIsAddingType(false);
+      
+      // Zeige dem Benutzer etwas Feedback
+      setFormSuccess("Typ hinzugefügt. Das Asset mit diesem Typ wird erst gespeichert, wenn Sie das Formular abschicken.");
+      setTimeout(() => setFormSuccess(""), 3000);
     } finally {
       setIsSubmittingType(false);
     }
@@ -112,8 +137,43 @@ export default function AddManualForm({ onSave }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleCustomFieldChange = (name, value) => {
+    setCustomFields(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleMediaUpload = (e) => {
-    setMediaFiles([...e.target.files]);
+    if (e.target.files && e.target.files.length > 0) {
+      setMediaFiles(Array.from(e.target.files));
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setMediaFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const handleUrlInputChange = (index, value) => {
@@ -162,6 +222,7 @@ export default function AddManualForm({ onSave }) {
     let preview_image_path = "";
 
     try {
+      // Process file uploads
       for (let i = 0; i < mediaFiles.length; i++) {
         const mediaData = new FormData();
         mediaData.append("file", mediaFiles[i]);
@@ -200,11 +261,17 @@ export default function AddManualForm({ onSave }) {
         }
       }
 
+      // Remove empty custom fields
+      const filteredCustomFields = Object.fromEntries(
+        Object.entries(customFields).filter(([_, value]) => value.trim() !== "")
+      );
+      // Create payload with all data
       const payload = {
         ...formData,
         preview_image: preview_image_path,
         media_files,
         path: `/models/${formData.type}/${formData.name.replace(/\s+/g, "_").toLowerCase()}.ckpt`,
+        custom_fields: filteredCustomFields,
       };
 
       const response = await fetch("http://localhost:8000/api/assets", {
@@ -215,8 +282,22 @@ export default function AddManualForm({ onSave }) {
 
       if (response.ok) {
         const asset = await response.json();
+        
+        // Wenn der Typ neu ist, jetzt erst zum Server hinzufügen
+        if (pendingNewTypes.includes(formData.type)) {
+          // Füge den Typ erst jetzt zum Server hinzu
+          await fetch("http://localhost:8000/api/asset-types", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: formData.type })
+          });
+          
+          // Entferne den Typ aus den pendingNewTypes
+          setPendingNewTypes(prev => prev.filter(t => t !== formData.type));
+        }
         if (onSave) onSave(asset);
         
+        // Reset form
         setFormData({
           name: "",
           type: "",
@@ -233,6 +314,17 @@ export default function AddManualForm({ onSave }) {
           created_at: "",
           nsfw_level: "",
           download_url: "",
+        });
+        setCustomFields({
+          Steps: "",
+          Sampler: "",
+          "Guidance scale": "",
+          Seed: "",
+          Size: "",
+          "Model hash": "",
+          Model: "",
+          "LoRA hashes": "",
+          Version: "",
         });
         setMediaFiles([]);
         setPreviewUrls([]);
@@ -257,6 +349,11 @@ export default function AddManualForm({ onSave }) {
     prompts: ["positive_prompt", "negative_prompt", "trigger_words"],
     technical: ["model_version", "base_model", "created_at", "used_resources", "nsfw_level"],
     meta: ["creator", "slug", "download_url"]
+  };
+
+  const customFieldGroups = {
+    generation: ["Steps", "Sampler", "Guidance scale", "Seed", "Size"],
+    model: ["Model hash", "Model", "LoRA hashes", "Version"]
   };
 
   return (
@@ -295,10 +392,18 @@ export default function AddManualForm({ onSave }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Local file upload */}
+                {/* Local file upload with drag & drop */}
                 <div>
                   <label className="text-sm text-zinc-400 mb-2 block">Upload Images/Videos</label>
-                  <div className="border-2 border-dashed border-zinc-700 rounded-lg p-4 hover:border-zinc-600 transition-colors">
+                  <div
+                    ref={dropZoneRef}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed ${isDragging ? 'border-primary bg-primary/5' : 'border-zinc-700 hover:border-zinc-600'} rounded-lg p-4 transition-colors cursor-pointer`}
+                  >
                     {previewUrls.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2 mb-3">
                         {previewUrls.map((url, idx) => (
@@ -321,21 +426,22 @@ export default function AddManualForm({ onSave }) {
                       </div>
                     ) : (
                       <div className="text-center py-6">
-                        <Upload className="mx-auto h-12 w-12 text-zinc-500" />
-                        <p className="mt-2 text-sm text-zinc-400">
-                          Click to upload or drag and drop
+                        <Upload className={`mx-auto h-12 w-12 ${isDragging ? 'text-primary' : 'text-zinc-500'}`} />
+                        <p className={`mt-2 text-sm ${isDragging ? 'text-primary' : 'text-zinc-400'}`}>
+                          {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
                         </p>
                         <p className="text-xs text-zinc-500">
                           Images or videos supported
                         </p>
                       </div>
                     )}
-                    <Input
+                    <input
+                      ref={fileInputRef}
                       type="file"
                       accept="image/*,video/*"
                       multiple
                       onChange={handleMediaUpload}
-                      className="cursor-pointer"
+                      className="hidden"
                     />
                   </div>
                 </div>
@@ -506,6 +612,61 @@ export default function AddManualForm({ onSave }) {
                     />
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            {/* Generation Settings */}
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="w-5 h-5" />
+                  Generation Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {customFieldGroups.generation.map((field) => (
+                    <div key={field}>
+                      <label className="text-sm text-zinc-400 mb-2 block">
+                        {field}
+                      </label>
+                      <Input
+                        type={field === "Steps" || field === "Seed" ? "number" : "text"}
+                        value={customFields[field]}
+                        onChange={(e) => handleCustomFieldChange(field, e.target.value)}
+                        className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Model Information */}
+            <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Model Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {customFieldGroups.model.map((field) => (
+                    <div key={field}>
+                      <label className="text-sm text-zinc-400 mb-2 block flex items-center gap-2">
+                        {field === "Model hash" && <Hash className="w-3 h-3" />}
+                        {field}
+                      </label>
+                      <Input
+                        type="text"
+                        value={customFields[field]}
+                        onChange={(e) => handleCustomFieldChange(field, e.target.value)}
+                        className="bg-zinc-800/50 border-zinc-700 focus:border-primary"
+                      />
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
