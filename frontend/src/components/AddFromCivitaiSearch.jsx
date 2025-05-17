@@ -12,8 +12,14 @@ import {
   X, 
   SortDesc,
   FileUp,
-  Key
+  Key,
+  RefreshCw
 } from "lucide-react";
+
+// Configure axios with default timeout
+const api = axios.create({
+  timeout: 30000 // 30 second timeout
+});
 
 // Separate Modal components for better structure and reusability
 function ModalOverlay({ children, onClose }) {
@@ -59,7 +65,7 @@ function ModalContent({ model, onClose, onImportSuccess }) {
       const civitaiUrl = `https://civitai.com/models/${model.id}`;
       
       // Use the correct endpoint and pass the appropriate data
-      const res = await axios.post("/api/import/from-civitai", {
+      const res = await api.post("/api/import/from-civitai", {
         civitai_url: civitaiUrl,
         api_key: apiKey
       });
@@ -67,8 +73,15 @@ function ModalContent({ model, onClose, onImportSuccess }) {
       setMessage(`Successfully imported: ${res.data.name}`);
       if (onImportSuccess) onImportSuccess(res.data);
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || JSON.stringify(err);
-      setMessage(`Import error: ${msg}`);
+      console.error("Import error:", err);
+      
+      // Improved error handling
+      if (err.code === "ECONNABORTED") {
+        setMessage("Import timeout: Server took too long to respond. Try again.");
+      } else {
+        const msg = err.response?.data?.detail || err.message || JSON.stringify(err);
+        setMessage(`Import error: ${msg}`);
+      }
     } finally {
       setImporting(false);
     }
@@ -156,6 +169,8 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
   const [selectedModel, setSelectedModel] = useState(null);
   const [sortOption, setSortOption] = useState("Most Downloaded");
   const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load API key from localStorage on mount
   useEffect(() => {
@@ -176,22 +191,54 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
       handleSearch(true);
     }
   }, [sortOption]);
+  
+  // Maximum batch size for better performance
+  const BATCH_SIZE = 20;
+
+  // Function to execute search with retry logic
+  const executeSearch = async (query, currentPage, resetResults, maxRetries = 2) => {
+    try {
+      setIsLoading(true);
+      setMessage(resetResults ? "searching" : "loading-more");
+      
+      // Reduced batch size for better reliability
+      console.log(`Sending search: query=${query}, page=${currentPage}, sort=${sortOption}, limit=${BATCH_SIZE}`);
+      
+      const res = await api.get(
+        `/api/import/civitai/search?query=${encodeURIComponent(query)}&api_key=${apiKey || ""}&limit=${BATCH_SIZE}&page=${currentPage}&sort=${encodeURIComponent(sortOption)}`
+      );
+
+      const newItems = res.data.items || [];
+      const metadata = res.data.metadata || {};
+      console.log(`Received results: ${newItems.length}, total: ${metadata.totalItems || 'unknown'}`);
+
+      // Has more pages?
+      const hasMoreResults = newItems.length === BATCH_SIZE && 
+                           (metadata.currentPage < metadata.totalPages || !metadata.totalPages);
+      
+      return {
+        items: newItems,
+        hasMore: hasMoreResults
+      };
+    } catch (error) {
+      console.error("Search error:", error);
+      
+      // Check if it's a timeout issue
+      if (error.code === "ECONNABORTED" && maxRetries > 0) {
+        console.log(`Search timed out, retrying (${maxRetries} attempts left)...`);
+        // Retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, (3 - maxRetries) * 1000));
+        return executeSearch(query, currentPage, resetResults, maxRetries - 1);
+      }
+      
+      throw error;
+    }
+  };
 
   const handleSearch = async (reset = true) => {
-    // Reset results for a new search
-    if (reset) {
-      setResults([]);
-      setPage(1);
-      setHasMore(false);
-      setMessage("searching");
-      setSelectedModel(null);
-    }
-
-    // If not a new search and no more results to show, abort
-    if (!reset && !hasMore) {
-      return;
-    }
-
+    // Don't perform concurrent searches
+    if (isLoading) return;
+    
     try {
       // No search term? Don't search.
       if (!searchTerm.trim()) {
@@ -199,47 +246,59 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
         return;
       }
 
-      console.log(`Sending search: query=${searchTerm}, page=${page}, sort=${sortOption}`);
-      
-      // Optimized API call: Fixed page sizes
-      const res = await axios.get(
-        `/api/import/civitai/search?query=${encodeURIComponent(searchTerm)}&api_key=${apiKey || ""}&limit=40&page=1&sort=${encodeURIComponent(sortOption)}`
-      );
-
-      const newItems = res.data.items || [];
-      console.log(`Received results: ${newItems.length}`);
-
-      if (newItems.length === 0) {
-        setMessage("no-results");
+      // For new searches, reset state
+      if (reset) {
+        setResults([]);
+        setPage(1);
         setHasMore(false);
+        setSelectedModel(null);
+      }
+
+      const currentPageToFetch = reset ? 1 : page;
+      const searchResult = await executeSearch(searchTerm, currentPageToFetch, reset);
+      
+      if (searchResult.items.length === 0) {
+        setMessage("no-results");
         return;
       }
 
-      // Track all IDs we already have
-      let uniqueResults = [...newItems];
-      
-      if (!reset) {
-        // For "Show more", only add new unique results
-        const existingIds = new Set(results.map(item => item.id));
-        uniqueResults = newItems.filter(item => !existingIds.has(item.id));
-        
-        // Append unique results to existing ones
-        setResults(prev => [...prev, ...uniqueResults]);
+      // Update results with de-duplication
+      if (reset) {
+        setResults(searchResult.items);
       } else {
-        // For a new search, just set all results
-        setResults(uniqueResults);
+        // For "load more", filter out duplicates
+        const existingIds = new Set(results.map(item => item.id));
+        const uniqueNewItems = searchResult.items.filter(item => !existingIds.has(item.id));
+        setResults(prev => [...prev, ...uniqueNewItems]);
       }
 
-      // We disable pagination since the API doesn't provide reliable follow-up pages
-      // Instead, we always show the top 40, which is sufficient for most use cases
-      setHasMore(false);
-      
-      const totalCount = reset ? uniqueResults.length : results.length + uniqueResults.length;
+      // Update state for pagination
+      setHasMore(searchResult.hasMore);
+      if (!reset) {
+        setPage(currentPageToFetch + 1);
+      }
+
+      // Success message with count
+      const totalCount = reset ? searchResult.items.length : results.length + searchResult.items.length;
       setMessage(`success-${totalCount}`);
+      
+      // Reset retry counter on success
+      setRetryCount(0);
+      
     } catch (err) {
-      console.error("Search error:", err);
-      setMessage(`error-${err.response?.data?.detail || err.message || "Unknown error"}`);
-      setHasMore(false);
+      console.error("Search failed:", err);
+      
+      // Improved error messaging for different error types
+      if (err.code === "ECONNABORTED") {
+        setMessage("error-Search timed out. Try a more specific search term or try again later.");
+      } else {
+        setMessage(`error-${err.response?.data?.detail || err.message || "Unknown error"}`);
+      }
+      
+      // Track retries for UI feedback
+      setRetryCount(prev => prev + 1);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -254,6 +313,13 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
         <p className="text-sm mt-2 flex items-center gap-1 text-blue-400">
           <Loader className="w-4 h-4 animate-spin" />
           Searching...
+        </p>
+      );
+    } else if (message === "loading-more") {
+      return (
+        <p className="text-sm mt-2 flex items-center gap-1 text-blue-400">
+          <Loader className="w-4 h-4 animate-spin" />
+          Loading more results...
         </p>
       );
     } else if (message === "error-empty") {
@@ -306,6 +372,9 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
               placeholder="Search term (e.g. SDXL, anime...)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch(true);
+              }}
               className="w-full p-2 pl-10 rounded bg-zinc-900 text-white border border-zinc-700"
             />
           </div>
@@ -340,58 +409,104 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
 
           <button
             onClick={() => handleSearch(true)}
-            className="w-full bg-primary text-background font-semibold px-4 py-2 rounded hover:bg-primary/80 transition flex items-center justify-center gap-2"
+            disabled={isLoading || !searchTerm.trim()}
+            className="w-full bg-primary text-background font-semibold px-4 py-2 rounded hover:bg-primary/80 transition flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <Search className="w-5 h-5" />
-            Search (shows up to 40 top results)
+            {isLoading ? (
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search CivitAI
+              </>
+            )}
           </button>
 
           {renderMessageWithIcon()}
+          
+          {retryCount > 0 && (
+            <div className="text-xs text-yellow-500 bg-yellow-950/30 p-2 rounded border border-yellow-900 mt-2">
+              <p className="font-medium">Trouble connecting to CivitAI?</p>
+              <ul className="mt-1 list-disc pl-5 space-y-1">
+                <li>Try using a more specific search term</li>
+                <li>Check your internet connection</li>
+                <li>CivitAI may be experiencing high traffic</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
       {results.length > 0 && (
-        <div className="mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 px-2">
-            {results.map((model) => {
-              const version = model.modelVersions?.[0];
-              const imageUrl = version?.images?.[0]?.url?.replace("https://www.civitai.com", "https://civitai.com") || "/fallback.jpg";
-              const baseModel = version?.baseModel || "?";
+        <>
+          <div className="mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 px-2">
+              {results.map((model) => {
+                const version = model.modelVersions?.[0];
+                const imageUrl = version?.images?.[0]?.url?.replace("https://www.civitai.com", "https://civitai.com") || "/fallback.jpg";
+                const baseModel = version?.baseModel || "?";
 
-              return (
-                <div
-                  key={model.id}
-                  className="relative group bg-box rounded-lg shadow hover:shadow-xl transition overflow-hidden border border-[#2f2f2f] cursor-pointer"
-                  onClick={() => setSelectedModel(model)}
-                >
-                  {isVideo(imageUrl) ? (
-                    <div className="aspect-[9/12] bg-black overflow-hidden">
-                      <VideoHoverPreview src={imageUrl} />
-                    </div>
-                  ) : (
-                    <div className="aspect-[9/12] bg-black overflow-hidden">
-                      <img
-                        src={imageUrl}
-                        alt={model.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
+                return (
+                  <div
+                    key={model.id}
+                    className="relative group bg-box rounded-lg shadow hover:shadow-xl transition overflow-hidden border border-[#2f2f2f] cursor-pointer"
+                    onClick={() => setSelectedModel(model)}
+                  >
+                    {isVideo(imageUrl) ? (
+                      <div className="aspect-[9/12] bg-black overflow-hidden">
+                        <VideoHoverPreview src={imageUrl} />
+                      </div>
+                    ) : (
+                      <div className="aspect-[9/12] bg-black overflow-hidden">
+                        <img
+                          src={imageUrl}
+                          alt={model.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy" // Lazy load images for better performance
+                        />
+                      </div>
+                    )}
 
-                  <div className="bg-[#101010] text-[#e2f263] p-3 flex flex-col justify-between h-[110px]">
-                    <h3 className="text-sm font-semibold whitespace-normal break-words leading-snug mb-1 line-clamp-2">
-                      {model.name}
-                    </h3>
-                    <p className="text-xs opacity-70 flex justify-between">
-                      <span>{model.type}</span>
-                      <span className="ml-2">{baseModel}</span>
-                    </p>
+                    <div className="bg-[#101010] text-[#e2f263] p-3 flex flex-col justify-between h-[110px]">
+                      <h3 className="text-sm font-semibold whitespace-normal break-words leading-snug mb-1 line-clamp-2">
+                        {model.name}
+                      </h3>
+                      <p className="text-xs opacity-70 flex justify-between">
+                        <span>{model.type}</span>
+                        <span className="ml-2">{baseModel}</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+          
+          {hasMore && (
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={() => handleSearch(false)}
+                disabled={isLoading}
+                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Loading more...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Load more results
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {selectedModel && (
