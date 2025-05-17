@@ -24,40 +24,79 @@ export default function AddFromCivitai() {
     setImportResult(null);
     setLoading(true);
 
-    const headers = {
-      "User-Agent": "Lokarni-Frontend/1.0",
-    };
-
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-
-    const isImageUrl = url.includes("/images/");
+    // Log the request details for debugging
+    console.log("Importing from URL:", url);
+    console.log("API Key present:", !!apiKey);
 
     try {
       let endpoint;
       let payload;
+      let method = "post";
 
-      if (isImageUrl) {
+      if (url.includes("/images/")) {
+        // For image imports
         const imageId = url.split("/images/")[1].split("?")[0];
+        console.log("Detected image import with ID:", imageId);
         endpoint = `/api/import/from-civitai-image/${imageId}`;
         payload = {};
       } else {
-        endpoint = "/api/assets/from-civitai";
+        // For model imports
+        console.log("Attempting model import");
+        endpoint = "/api/import/from-civitai";
         payload = { civitai_url: url, api_key: apiKey || null };
       }
 
-      const res = await axios.post(endpoint, payload, { headers });
+      console.log("Using endpoint:", endpoint);
+      console.log("Payload:", payload);
 
+      // Set cookies before the request
       if (apiKey) {
         localStorage.setItem("civitai-api-key", apiKey);
         document.cookie = `civitai-api-key=${apiKey};path=/`;
+        console.log("Set API key in cookie and localStorage");
       }
 
+      // Make the request with detailed error handling
+      const response = await axios({
+        method,
+        url: endpoint,
+        data: payload,
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Lokarni-Frontend/1.0",
+          ...(apiKey ? { "Authorization": `Bearer ${apiKey}` } : {})
+        }
+      });
+
+      console.log("Import successful, response:", response.data);
       setMessage("Successfully imported!");
-      setImportResult(res.data);
-    } catch (err) {
-      setMessage(err.response?.data?.detail || err.message || "Unknown error");
+      setImportResult(response.data);
+    } catch (error) {
+      console.error("Import failed:", error);
+      
+      // More detailed error reporting
+      let errorMessage = "Unknown error occurred";
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+        
+        errorMessage = error.response.data?.detail || 
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("Error request:", error.request);
+        errorMessage = "No response received from server";
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error message:", error.message);
+        errorMessage = error.message;
+      }
+      
+      setMessage(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -115,7 +154,11 @@ export default function AddFromCivitai() {
                 <div className="mt-2 flex items-start gap-2 text-xs text-yellow-500/80">
                   <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                   <span>
-                    Slugs like <code className="bg-zinc-800/50 px-1 rounded">/models/sdxl</code> or direct image links are not supported – use the complete model URL with ID.
+                    Supported formats:
+                    <ul className="mt-1 ml-3">
+                      <li>• https://civitai.com/models/12345/model-name</li>
+                      <li>• https://civitai.com/images/12345</li>
+                    </ul>
                   </span>
                 </div>
               </div>
