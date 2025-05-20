@@ -113,7 +113,7 @@ export default function Sidebar({ onSelectCategory }) {
               </h2>
               <Badge variant="secondary" className="mt-1">
                 <Sparkles className="w-3 h-3 mr-1" />
-                v2.5
+                v2.6
               </Badge>
             </div>
           </motion.div>
