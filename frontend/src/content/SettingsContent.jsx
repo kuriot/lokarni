@@ -20,6 +20,11 @@ export default function SettingsContent() {
 
   const versions = [
     {
+      version: "2.6.0",
+      date: "2024-05-20",
+      notes: "Major Release, Bugfixes, Performance Update",
+    },
+    {
       version: "2.5.0",
       date: "2025-05-17",
       notes: "Improved UI, UX, usability and performance",
@@ -31,14 +36,10 @@ export default function SettingsContent() {
     },
     {
       version: "1.2.5",
-      date: "2024-11-20",
+      date: "2024-04-20",
       notes: "Added support for batch operations",
     },
-    {
-      version: "1.1.0",
-      date: "2024-08-15",
-      notes: "New importing features from CivitAI",
-    },
+
   ];
 
   return (
