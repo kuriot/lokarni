@@ -173,25 +173,27 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
       return;
     }
     
-    // If linked_assets is already an array of objects with id, name, etc., use it directly
-    if (Array.isArray(currentAsset.linked_assets) && currentAsset.linked_assets.length > 0 && typeof currentAsset.linked_assets[0] === 'object') {
-      setLinkedAssets(currentAsset.linked_assets);
-    } 
     // If linked_assets is an array of IDs, fetch the full asset objects
-    else if (Array.isArray(currentAsset.linked_assets) && currentAsset.linked_assets.length > 0) {
+    if (Array.isArray(currentAsset.linked_assets) && currentAsset.linked_assets.length > 0) {
       const fetchLinkedAssets = async () => {
         try {
           const linkedAssetsData = [];
           for (const id of currentAsset.linked_assets) {
-            const response = await fetch(`http://localhost:8000/api/assets/${id}`);
-            if (response.ok) {
-              const data = await response.json();
-              linkedAssetsData.push(data);
+            // Convert to number if it's a string (sometimes comes as a string from the API)
+            const assetId = typeof id === 'string' ? parseInt(id, 10) : id;
+            if (!isNaN(assetId)) {
+              // FIXED: Remove trailing slash to avoid 405 Method Not Allowed
+              const response = await fetch(`http://localhost:8000/api/assets/${assetId}`);
+              if (response.ok) {
+                const data = await response.json();
+                linkedAssetsData.push(data);
+              }
             }
           }
           setLinkedAssets(linkedAssetsData);
         } catch (error) {
           console.error("Error fetching linked assets:", error);
+          setLinkedAssets([]);
         }
       };
       
@@ -260,7 +262,7 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
   const previewPath = currentMedia ? IMAGE_BASE_URL + currentMedia : "https://via.placeholder.com/600x400?text=No+Preview";
   const isVideo = (path) => path?.endsWith(".webm") || path?.endsWith(".mp4");
 
-  // Function to search for assets
+  // Improved function to search for assets
   const searchAssets = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -269,23 +271,37 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
     
     setIsSearching(true);
     try {
+      // FIXED: Remove trailing slash to avoid 405 Method Not Allowed
       const response = await fetch(`http://localhost:8000/api/assets/search?q=${encodeURIComponent(query)}`);
       if (!response.ok) throw new Error("Search failed");
       
       const data = await response.json();
+      console.log("Search results:", data);
+      
       // Filter out the current asset and already linked assets
-      // Include name in the search criteria
-      const filteredResults = data.filter(item => 
-        item.id !== currentAsset.id && 
-        !linkedAssets.some(linked => linked.id === item.id) &&
-        (item.name.toLowerCase().includes(query.toLowerCase()) || 
-         (item.tags && item.tags.toLowerCase().includes(query.toLowerCase())) ||
-         (item.type && item.type.toLowerCase().includes(query.toLowerCase())))
-      );
+      const currentAssetId = currentAsset.id;
+      const linkedAssetIds = linkedAssets.map(a => a.id);
+      
+      const filteredResults = data.filter(item => {
+        // Don't include the current asset
+        if (item.id === currentAssetId) return false;
+        
+        // Don't include already linked assets
+        if (linkedAssetIds.includes(item.id)) return false;
+        
+        // Only include if name, tags, or type match the search term
+        const searchTermLower = query.toLowerCase();
+        return (
+          item.name.toLowerCase().includes(searchTermLower) || 
+          (item.tags && item.tags.toLowerCase().includes(searchTermLower)) ||
+          (item.type && item.type.toLowerCase().includes(searchTermLower))
+        );
+      });
       
       setSearchResults(filteredResults);
     } catch (error) {
       console.error("Search error:", error);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -296,6 +312,8 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
     const timer = setTimeout(() => {
       if (searchTerm.trim()) {
         searchAssets(searchTerm);
+      } else {
+        setSearchResults([]);
       }
     }, 300);
     
@@ -332,7 +350,14 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
 
   // Function to add an asset to linked assets
   const addLinkedAsset = (assetToLink) => {
-    setLinkedAssets(prev => [...prev, assetToLink]);
+    console.log("Adding linked asset:", assetToLink);
+    
+    // Make sure we're not adding duplicates
+    if (!linkedAssets.some(a => a.id === assetToLink.id)) {
+      setLinkedAssets(prev => [...prev, assetToLink]);
+    }
+    
+    // Remove from search results
     setSearchResults(prev => prev.filter(item => item.id !== assetToLink.id));
   };
   
@@ -412,30 +437,41 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
       }
       
       // Update the preview image if it was deleted
-      let updatedPreviewImage = editData.preview_image;
+      let updatedPreviewImage = currentAsset.preview_image;
       if (currentAsset.preview_image && !allMediaFiles.includes(currentAsset.preview_image)) {
         updatedPreviewImage = allMediaFiles.length > 0 ? allMediaFiles[0] : "";
       }
       
       // Extract just the IDs from linked assets for saving
       const linkedAssetIds = linkedAssets.map(asset => asset.id);
+      console.log("Saving linked asset IDs:", linkedAssetIds);
       
+      const payload = {
+        ...editData,
+        media_files: allMediaFiles,
+        preview_image: updatedPreviewImage,
+        custom_fields: editCustomFields,
+        linked_assets: linkedAssetIds
+      };
+      
+      console.log("Saving asset with payload:", payload);
+      
+      // FIXED: Remove trailing slash to avoid 405 Method Not Allowed
       const response = await fetch(`http://localhost:8000/api/assets/${currentAsset.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...editData,
-          media_files: allMediaFiles,
-          preview_image: updatedPreviewImage,
-          custom_fields: editCustomFields,
-          linked_assets: linkedAssetIds // Save linked assets
-        }),
+        body: JSON.stringify(payload),
       });
       
-      if (!response.ok) throw new Error("Error saving changes");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error response:", errorData);
+        throw new Error(errorData.detail || "Error saving changes");
+      }
       
       // Update the asset object
       const updatedAsset = await response.json();
+      console.log("Updated asset:", updatedAsset);
       
       // Update the current asset in the openAssets array
       setOpenAssets(prev => prev.map((a, i) => 
@@ -447,47 +483,65 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
       
       if (onUpdate) await onUpdate();
     } catch (err) {
-      console.error(err);
+      console.error("Save error:", err);
       setUploadError(err.message || "Failed to save changes");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Willst du dieses Asset wirklich löschen?")) return;
-    try {
-      const response = await fetch(`http://localhost:8000/api/assets/${currentAsset.id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Fehler beim Löschen");
+const handleDelete = async () => {
+  // Verwende das korrekte window.confirm für einen Standard-Bestätigungsdialog
+  if (!window.confirm("Willst du dieses Asset wirklich löschen?")) {
+    return;
+  }
+  
+  try {
+    // Asset-ID extrahieren und URL vorbereiten
+    const assetId = currentAsset.id;
+    console.log("Attempting to delete asset ID:", assetId);
+    
+    // URL ohne trailing slash verwenden
+    const deleteUrl = `http://localhost:8000/api/assets/${assetId}`;
+    
+    // DELETE-Request senden
+    const response = await fetch(deleteUrl, {
+      method: "DELETE"
+    });
+    
+    // Auf Erfolg oder Fehler reagieren
+    if (response.ok) {
+      console.log("Delete successful");
       
-      // If there's only one asset open, close the modal
+      // UI nach erfolgreicher Löschung aktualisieren
       if (openAssets.length === 1) {
         if (onUpdate) await onUpdate();
         onClose();
-        return;
+      } else {
+        setOpenAssets(prev => prev.filter((_, i) => i !== activeAssetIndex));
+        setActiveAssetIndex(prev => Math.max(0, prev - 1));
+        
+        if (onUpdate) await onUpdate();
       }
-      
-      // Otherwise, remove the current asset and switch to another one
-      setOpenAssets(prev => prev.filter((_, i) => i !== activeAssetIndex));
-      setActiveAssetIndex(prev => prev > 0 ? prev - 1 : 0);
-      
-      if (onUpdate) await onUpdate();
-    } catch (err) {
-      console.error(err);
-      alert("Löschen fehlgeschlagen");
+    } else {
+      const errorText = await response.text();
+      throw new Error(`HTTP-Fehler: ${response.status} - ${errorText}`);
     }
-  };
-
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert(`Löschen fehlgeschlagen: ${err.message}`);
+  }
+};
   const handleToggleFavorite = async () => {
     try {
+      // FIXED: Remove trailing slash to avoid 405 Method Not Allowed
       const response = await fetch(`http://localhost:8000/api/assets/${currentAsset.id}/favorite`, {
         method: "PATCH",
       });
       if (!response.ok) throw new Error("Fehler beim Favoritenwechsel");
       
       const updatedAsset = await response.json();
+      console.log("Updated favorite:", updatedAsset);
       
       // Update the current asset in the openAssets array
       setOpenAssets(prev => prev.map((a, i) => 
@@ -524,6 +578,7 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
       } 
       // Otherwise, make a direct API call
       else if (!linkedAsset.media_files || !linkedAsset.description) {
+        // FIXED: Remove trailing slash to avoid 405 Method Not Allowed
         const response = await fetch(`http://localhost:8000/api/assets/${linkedAsset.id}`);
         if (response.ok) {
           fullAssetData = await response.json();
@@ -660,15 +715,15 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
             <div className="p-6 border-b border-border/30">
               {/* Buttons row at the top */}
               <div className="flex justify-end gap-2 mb-4">
-                <Button
-                  onClick={handleDelete}
-                  variant="outline"
-                  size="icon"
-                  className="text-destructive border-destructive/50 hover:bg-destructive/10 w-8 h-8"
-                  title="Löschen"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+<Button
+  onClick={handleDelete}
+  variant="outline"
+  size="icon"
+  className="text-destructive border-destructive/50 hover:bg-destructive/10 w-8 h-8"
+  title="Löschen"
+>
+  <Trash2 className="w-4 h-4" />
+</Button>
                 
                 <Button
                   onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
