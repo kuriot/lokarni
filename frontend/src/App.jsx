@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import AssetGrid from "./components/AssetGrid";
 import AssetModal from "./components/AssetModal";
-import { LayoutGrid, Columns } from "lucide-react";
+import { LayoutGrid, Columns, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import {
@@ -26,22 +26,30 @@ export default function App() {
   const [layout, setLayout] = useState(() => {
     return localStorage.getItem("lokarni-grid-layout") || "grid";
   });
+  const [showNSFW, setShowNSFW] = useState(() => {
+    return localStorage.getItem("lokarni-show-nsfw") === "true";
+  });
 
   const fetchAssets = () => {
-    let param = "";
+    let params = [];
 
     if (category === "Favorites") {
-      param = "?favorite=true";
+      params.push("favorite=true");
     } else if (
-      category === "All Assets" ||
-      ["Add", "Manage", "Settings", "Search"].includes(category)
+      category !== "All Assets" &&
+      !["Add", "Manage", "Settings", "Search"].includes(category)
     ) {
-      param = "";
-    } else {
-      param = `?category=${encodeURIComponent(category)}`;
+      params.push(`category=${encodeURIComponent(category)}`);
     }
+    
+    // Add NSFW filter parameter
+    if (!showNSFW) {
+      params.push("nsfw_filter=true");
+    }
+    
+    const queryString = params.length > 0 ? `?${params.join("&")}` : "";
 
-    fetch(`http://localhost:8000/api/assets${param}`)
+    fetch(`http://localhost:8000/api/assets${queryString}`)
       .then((res) => {
         if (!res.ok) throw new Error("Server response was not OK");
         return res.json();
@@ -56,11 +64,15 @@ export default function App() {
     if (!["Add", "Manage", "Settings", "Search"].includes(category)) {
       fetchAssets();
     }
-  }, [category]);
+  }, [category, showNSFW]);
 
   useEffect(() => {
     localStorage.setItem("lokarni-grid-layout", layout);
   }, [layout]);
+  
+  useEffect(() => {
+    localStorage.setItem("lokarni-show-nsfw", showNSFW.toString());
+  }, [showNSFW]);
 
   const handleUpdate = () => {
     fetchAssets();
@@ -69,6 +81,10 @@ export default function App() {
 
   const toggleLayout = () => {
     setLayout((prev) => (prev === "grid" ? "masonry" : "grid"));
+  };
+  
+  const toggleNSFW = () => {
+    setShowNSFW((prev) => !prev);
   };
 
   return (
@@ -107,6 +123,7 @@ export default function App() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-2"
                 >
+                  {/* Layout Toggle */}
                   <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -142,6 +159,30 @@ export default function App() {
                       </TooltipContent>
                     </Tooltip>
                   </div>
+                  
+                  {/* NSFW Content Toggle */}
+                  <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Toggle
+                          pressed={showNSFW}
+                          onPressedChange={toggleNSFW}
+                          className={cn(
+                            "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          )}
+                        >
+                          {showNSFW ? (
+                            <Eye className="w-4 h-4" />
+                          ) : (
+                            <EyeOff className="w-4 h-4" />
+                          )}
+                        </Toggle>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{showNSFW ? "Hide NSFW Content" : "Show NSFW Content"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </motion.div>
               )}
             </div>
@@ -163,6 +204,7 @@ export default function App() {
                   onlyFavorites={category === "Favorites"}
                   category={category}
                   layout={layout}
+                  showNSFW={showNSFW}
                 />
                 
                 {selectedAsset && (

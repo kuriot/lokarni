@@ -14,8 +14,8 @@ def get_asset_with_slash(asset_id: int, db: Session = Depends(database.get_db)):
     return get_asset(asset_id, db)
 
 @router.get("/search/", response_model=list[schemas.Asset])
-def search_assets_with_slash(q: str = "", category: str = "All", db: Session = Depends(database.get_db)):
-    return search_assets(q, category, db)
+def search_assets_with_slash(q: str = "", category: str = "All", nsfw_filter: bool = False, db: Session = Depends(database.get_db)):
+    return search_assets(q, category, nsfw_filter, db)
 
 @router.patch("/{asset_id}/", response_model=schemas.Asset)
 def update_asset_with_slash(asset_id: int, asset_data: schemas.AssetUpdate, db: Session = Depends(database.get_db)):
@@ -130,6 +130,7 @@ def update_asset(asset_id: int, asset_data: schemas.AssetUpdate, db: Session = D
     print(f"Updated asset: {db_asset.id}, linked_assets: {db_asset.linked_assets}")
     
     return db_asset
+
 @router.patch("/{asset_id}/favorite", response_model=schemas.Asset)
 def toggle_favorite(asset_id: int, db: Session = Depends(database.get_db)):
     asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
@@ -149,9 +150,15 @@ def toggle_favorite_with_slash(asset_id: int, db: Session = Depends(database.get
 def get_assets(
     category: str = None,
     favorite: bool = False,
+    nsfw_filter: bool = False,
     db: Session = Depends(database.get_db)
 ):
     query = db.query(models.Asset)
+    
+    # Apply NSFW filtering if requested
+    if nsfw_filter:
+        # Filter to only include assets with nsfw_level == "0" or nsfw_level is NULL
+        query = query.filter((models.Asset.nsfw_level == "0") | (models.Asset.nsfw_level == None))
 
     if category in ["Favorites", "Favoriten"]:
         query = query.filter(models.Asset.is_favorite == True)
@@ -167,6 +174,7 @@ def get_assets(
 
         def matches_category(asset):
             combined = " ".join([
+                asset.name or "",      # Name/Titel hinzugefügt
                 asset.tags or "",
                 asset.trigger_words or "",
                 asset.positive_prompt or "",
@@ -211,8 +219,14 @@ def create_asset(asset: schemas.AssetCreate, db: Session = Depends(database.get_
     return new_asset
 
 @router.get("/keywords")
-def get_keywords(q: str = "", category: str = "All", db: Session = Depends(database.get_db)):
-    assets = db.query(models.Asset).all()
+def get_keywords(q: str = "", category: str = "All", nsfw_filter: bool = False, db: Session = Depends(database.get_db)):
+    query = db.query(models.Asset)
+    
+    # Apply NSFW filtering if requested
+    if nsfw_filter:
+        query = query.filter((models.Asset.nsfw_level == "0") | (models.Asset.nsfw_level == None))
+    
+    assets = query.all()
     keywords = []
 
     if category not in ["All", "All Assets", "Favoriten", "Favorites"]:
@@ -220,6 +234,7 @@ def get_keywords(q: str = "", category: str = "All", db: Session = Depends(datab
 
         def matches_category(asset):
             combined = " ".join([
+                asset.name or "",      # Name/Titel hinzugefügt
                 asset.tags or "",
                 asset.trigger_words or "",
                 asset.positive_prompt or "",
@@ -233,6 +248,7 @@ def get_keywords(q: str = "", category: str = "All", db: Session = Depends(datab
 
     for asset in assets:
         content = " ".join([
+            asset.name or "",          # Name/Titel hinzugefügt
             asset.tags or "",
             asset.trigger_words or "",
             asset.positive_prompt or "",
@@ -256,23 +272,35 @@ def get_keywords(q: str = "", category: str = "All", db: Session = Depends(datab
     return [{"word": word, "count": count} for word, count in top_keywords]
 
 @router.get("/keywords/")
-def get_keywords_with_slash(q: str = "", category: str = "All", db: Session = Depends(database.get_db)):
-    return get_keywords(q, category, db)
+def get_keywords_with_slash(q: str = "", category: str = "All", nsfw_filter: bool = False, db: Session = Depends(database.get_db)):
+    return get_keywords(q, category, nsfw_filter, db)
 
 @router.get("/search", response_model=list[schemas.Asset])
-def search_assets(q: str = "", category: str = "All", db: Session = Depends(database.get_db)):
+def search_assets(q: str = "", category: str = "All", nsfw_filter: bool = False, db: Session = Depends(database.get_db)):
+    query = db.query(models.Asset)
+    
+    # Apply NSFW filtering if requested
+    if nsfw_filter:
+        # Filter to only include assets with nsfw_level == "0" or nsfw_level is NULL
+        query = query.filter((models.Asset.nsfw_level == "0") | (models.Asset.nsfw_level == None))
+    
     if not q.strip():
-        return get_assets(category=category, db=db)
+        return get_assets(category=category, nsfw_filter=nsfw_filter, db=db)
 
     keywords = q.lower().split()
-    all_assets = db.query(models.Asset).all()
+    all_assets = query.all()
 
     if category not in ["All", "All Assets", "Favoriten", "Favorites"]:
         category_lower = category.lower()
 
         def matches_category(asset):
             combined = " ".join([
+                asset.name or "",      # Name/Titel hinzugefügt
                 asset.tags or "",
+                asset.trigger_words or "",
+                asset.positive_prompt or "",
+                asset.negative_prompt or "",
+                asset.used_resources or "",
                 asset.type or ""
             ]).lower()
             return category_lower in combined
@@ -281,6 +309,8 @@ def search_assets(q: str = "", category: str = "All", db: Session = Depends(data
 
     def matches(asset: models.Asset):
         content = " ".join([
+            asset.name or "",          # Name/Titel hinzugefügt
+            asset.description or "",   # Beschreibung hinzugefügt
             asset.tags or "",
             asset.trigger_words or "",
             asset.positive_prompt or "",
@@ -290,6 +320,7 @@ def search_assets(q: str = "", category: str = "All", db: Session = Depends(data
             asset.model_version or "",
             asset.base_model or "",
             asset.slug or "",
+            asset.creator or "",       # Ersteller hinzugefügt
         ]).lower()
         return all(kw in content for kw in keywords)
 

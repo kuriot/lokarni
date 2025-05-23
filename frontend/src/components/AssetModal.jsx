@@ -40,6 +40,13 @@ import {
   Loader2,
   LinkIcon
 } from "lucide-react";
+import { 
+  Select,
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 // Define the InfoBlock component with a more prominent copy button
 const InfoBlock = ({ label, content, icon: Icon }) => {
@@ -139,6 +146,68 @@ const AssetTab = ({ asset, active, onClick, onClose }) => {
       >
         <X className="w-3 h-3" />
       </Button>
+    </div>
+  );
+};
+
+// NSFW Select component
+const NSFWSelect = ({ value, onChange, icon: Icon }) => {
+  // Define NSFW options with string values - IMMER Strings verwenden!
+  const nsfwOptions = [
+    { value: "none", label: "None" },
+    { value: "0", label: "SFW (0)" },
+    { value: "1", label: "NSFW (1)" },
+  ];
+
+  // Wert für die Select-Komponente vorbereiten
+  const getSelectValue = () => {
+    // Zahlen in Strings umwandeln
+    if (value === 0) return "0";
+    if (value === 1) return "1";
+    // Leere Werte in "none" umwandeln
+    if (value === "" || value === null || value === undefined) return "none";
+    // Alles andere unverändert zurückgeben (sollte bereits ein String sein)
+    return value;
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-sm font-semibold text-primary">
+        {Icon && <Icon className="w-4 h-4" />}
+        NSFW Level
+      </label>
+      <Select 
+        value={getSelectValue()} 
+        onValueChange={(newValue) => {
+          // Wert für den State konvertieren
+          let processedValue;
+          
+          if (newValue === "none") {
+            processedValue = ""; // Leerer String für "None"
+          } else {
+            processedValue = newValue; // Als String belassen ("0" oder "1")
+          }
+          
+          console.log("NSFW select changed:", { 
+            newValue, 
+            processedValue,
+            type: typeof processedValue 
+          });
+          
+          onChange(processedValue);
+        }}
+      >
+        <SelectTrigger className="bg-card/30 border-border">
+          <SelectValue placeholder="Select NSFW level" />
+        </SelectTrigger>
+        <SelectContent>
+          {nsfwOptions.map(option => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };
@@ -861,7 +930,7 @@ const handleDelete = async () => {
                               </div>
                             ) : searchResults.length > 0 ? (
                               <div className="border border-border rounded-md overflow-hidden">
-                                <div className="max-h-48 overflow-y-auto">
+                                <ScrollArea className="h-48 max-h-48">
                                   {searchResults.map(result => (
                                     <div 
                                       key={`search-${result.id}`} 
@@ -896,7 +965,7 @@ const handleDelete = async () => {
                                       </div>
                                     </div>
                                   ))}
-                                </div>
+                                </ScrollArea>
                               </div>
                             ) : searchTerm && !isSearching ? (
                               <div className="text-center py-4 text-muted-foreground text-sm">
@@ -908,9 +977,12 @@ const handleDelete = async () => {
                           {/* Currently linked assets */}
                           {linkedAssets.length > 0 ? (
                             <div className="space-y-2">
-                              <h3 className="text-sm font-semibold text-muted-foreground">Currently Linked</h3>
+                              <h3 className="text-sm font-semibold flex items-center gap-2">
+                                <LinkIcon className="w-4 h-4 text-primary" />
+                                Linked Examples
+                              </h3>
                               <div className="border border-border rounded-md overflow-hidden">
-                                <div className="max-h-72 overflow-y-auto">
+                                <ScrollArea className="h-72 max-h-72">
                                   {linkedAssets.map(item => (
                                     <div 
                                       key={`linked-${item.id}`} 
@@ -945,7 +1017,7 @@ const handleDelete = async () => {
                                       </div>
                                     </div>
                                   ))}
-                                </div>
+                                </ScrollArea>
                               </div>
                             </div>
                           ) : (
@@ -962,8 +1034,12 @@ const handleDelete = async () => {
                         <div>
                           {linkedAssets.length > 0 ? (
                             <div className="space-y-2">
+                              <h3 className="text-sm font-semibold flex items-center gap-2">
+                                <LinkIcon className="w-4 h-4 text-primary" />
+                                Linked Examples
+                              </h3>
                               <div className="border border-border rounded-md overflow-hidden">
-                                <ScrollArea className="max-h-96">
+                                <ScrollArea className="h-[400px]">
                                   {linkedAssets.map(item => (
                                     <div 
                                       key={`view-linked-${item.id}`} 
@@ -1237,6 +1313,11 @@ const handleDelete = async () => {
                             value={editData.creator}
                             onChange={(v) => setEditData({ ...editData, creator: v })}
                             icon={User}
+                          />
+                          <NSFWSelect
+                            value={editData.nsfw_level}
+                            onChange={(v) => setEditData({ ...editData, nsfw_level: v })}
+                            icon={Shield}
                           />
                         </div>
                       ) : (

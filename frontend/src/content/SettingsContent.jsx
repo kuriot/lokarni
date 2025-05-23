@@ -19,6 +19,12 @@ export default function SettingsContent() {
   const [showChangelog, setShowChangelog] = useState(false);
 
   const versions = [
+  
+    {
+      version: "2.6.5",
+      date: "2024-05-23",
+      notes: "Bugfixes, Performance improve",
+    },
     {
       version: "2.6.0",
       date: "2024-05-20",
@@ -33,11 +39,6 @@ export default function SettingsContent() {
       version: "2.0.0",
       date: "2025-04-12",
       notes: "Complete rewrite with improved UI and performance",
-    },
-    {
-      version: "1.2.5",
-      date: "2024-04-20",
-      notes: "Added support for batch operations",
     },
 
   ];
@@ -56,7 +57,7 @@ export default function SettingsContent() {
           <div className="flex items-center gap-3 mb-4">
             <Badge variant="secondary" className="text-primary gap-1">
               <Cpu className="w-3 h-3" />
-              Version 2.5.0
+              Version 2.6.5
             </Badge>
             <Badge variant="outline" className="gap-1">
               <Calendar className="w-3 h-3" />
