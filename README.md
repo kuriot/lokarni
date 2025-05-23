@@ -1,11 +1,30 @@
 # LokArni
-
 ![Version](https://img.shields.io/badge/version-2.6.5-blue)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-green)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![React](https://img.shields.io/badge/react-18.2.0-61dafb)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Logo%20Lokarni.png" alt="Lokarni Logo" width="400"/>
+</p>
+
 **LokArni** is a powerful, locally-hosted fullstack web application for organizing, visualizing, and managing AI-related content. Centrally store, search, categorize, and efficiently reuse models (LoRAs, Checkpoints, VAEs), images, videos, and associated metadata.
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen01.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen01.png" width="200" alt="Screenshot 1"/>
+  </a>
+  <a href="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen02.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen02.png" width="200" alt="Screenshot 2"/>
+  </a>
+  <a href="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen03.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen03.png" width="200" alt="Screenshot 3"/>
+  </a>
+  <a href="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen04.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/Pixel-Arni/lokarni/refs/heads/main/frontend/public/Lokarni_Screen04.png" width="200" alt="Screenshot 4"/>
+  </a>
+</p>
+
 
 ---
 
