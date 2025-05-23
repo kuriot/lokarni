@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, Play, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,8 @@ export default function AssetGrid({
   setAssets, 
   onlyFavorites = false, 
   category = null, 
-  layout = "masonry" 
+  layout = "masonry",
+  showNSFW = false
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +69,7 @@ export default function AssetGrid({
   // Reset visibility state when data changes
   useEffect(() => {
     setVisibleAssets({});
-  }, [assets, currentPage, category, onlyFavorites]);
+  }, [assets, currentPage, category, onlyFavorites, showNSFW]);
   
   // Set up loading state
   useEffect(() => {
@@ -77,12 +78,12 @@ export default function AssetGrid({
       setIsLoading(false);
     }, 100);
     return () => clearTimeout(timer);
-  }, [assets, category, onlyFavorites]);
+  }, [assets, category, onlyFavorites, showNSFW]);
 
   // Reset pagination when filtering changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [category, onlyFavorites]);
+  }, [category, onlyFavorites, showNSFW]);
   
   // Scroll to top on initial load
   useEffect(() => {
@@ -131,20 +132,33 @@ export default function AssetGrid({
     return firstMedia || null;
   }, [isImage, isVideo]);
 
+  // Helper to determine if an asset is NSFW
+  const isNSFW = useCallback((asset) => {
+    // Consider any asset with nsfw_level that's not "0" or undefined/null as NSFW
+    return asset.nsfw_level && asset.nsfw_level !== "0";
+  }, []);
+
   // Filter and sort assets
   const processedAssets = useMemo(() => {
-    // Filter assets based on category
-    const filtered = category === "Favorites"
+    // First filter based on category and favorites
+    let filtered = category === "Favorites"
       ? assets.filter((asset) => asset.is_favorite)
       : category === "All Assets"
       ? assets
       : onlyFavorites
       ? assets.filter((asset) => asset.is_favorite)
       : assets;
+    
+    // Then filter out NSFW content if showNSFW is false
+    // Note: We don't need this filter here if already done on the server side,
+    // but keeping it for client-side filtering just in case
+    if (!showNSFW) {
+      filtered = filtered.filter(asset => !isNSFW(asset));
+    }
         
     // Sort assets - newest first (assuming higher IDs are newer)
     return [...filtered].sort((a, b) => b.id - a.id);
-  }, [assets, category, onlyFavorites]);
+  }, [assets, category, onlyFavorites, showNSFW, isNSFW]);
   
   // Calculate pagination
   const { paginatedAssets, totalPages, startIndex, totalCount } = useMemo(() => {
@@ -218,6 +232,7 @@ export default function AssetGrid({
             const fullPath = previewPath ? `http://localhost:8000${previewPath}` : null;
             const isHovered = hoveredId === asset.id;
             const isVisible = visibleAssets[asset.id];
+            const assetIsNSFW = isNSFW(asset);
             
             return (
               <div
@@ -262,6 +277,17 @@ export default function AssetGrid({
                     >
                       {asset.type}
                     </Badge>
+                    
+                    {/* NSFW Badge */}
+                    {assetIsNSFW && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute top-3 right-16 z-20 bg-red-500/80 backdrop-blur-sm flex items-center gap-1"
+                      >
+                        <ShieldAlert className="w-3 h-3" />
+                        NSFW
+                      </Badge>
+                    )}
 
                     {/* Media Preview */}
                     <div 

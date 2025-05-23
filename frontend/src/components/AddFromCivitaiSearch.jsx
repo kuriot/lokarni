@@ -13,7 +13,8 @@ import {
   SortDesc,
   FileUp,
   Key,
-  RefreshCw
+  RefreshCw,
+  FileDown
 } from "lucide-react";
 
 // Configure axios with default timeout
@@ -45,6 +46,9 @@ function ModalContent({ model, onClose, onImportSuccess }) {
   const [message, setMessage] = useState("");
   const videoRef = useRef(null);
   const isVideo = imageUrl?.endsWith(".mp4") || imageUrl?.endsWith(".webm");
+
+  // Get download URL from model data
+  const downloadUrl = version?.files?.[0]?.downloadUrl || "";
 
   // Autoplay video when shown in modal
   useEffect(() => {
@@ -87,6 +91,15 @@ function ModalContent({ model, onClose, onImportSuccess }) {
     }
   };
 
+  const handleDownload = () => {
+    if (downloadUrl) {
+      // Open download URL in new tab
+      window.open(downloadUrl, '_blank');
+    } else {
+      setMessage("Download URL is not available for this model");
+    }
+  };
+
   return (
     <div className="flex items-center justify-center h-full w-full p-4">
       <div className="bg-background rounded-lg max-w-4xl w-full shadow-xl overflow-hidden">
@@ -111,19 +124,29 @@ function ModalContent({ model, onClose, onImportSuccess }) {
             <h2 className="text-xl font-bold text-white mb-2">{model.name}</h2>
             <p className="text-sm text-zinc-400 mb-2">Type: {model.type}</p>
             <p className="text-sm text-zinc-400 mb-4">Base Model: {version?.baseModel}</p>
-            <div className="flex space-x-4 pt-2">
+            <div className="flex space-x-3 pt-2">
               <a
                 href={`https://civitai.com/models/${model.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-muted text-foreground px-4 py-2 rounded font-semibold hover:bg-muted/80 flex items-center gap-2"
+                className="bg-muted text-foreground px-3 py-2 rounded font-semibold hover:bg-muted/80 flex items-center gap-2"
               >
-                <Globe className="w-4 h-4" /> View on CivitAI
+                <Globe className="w-4 h-4" /> View
               </a>
+              
+              <button
+                onClick={handleDownload}
+                disabled={!downloadUrl}
+                className="bg-blue-600 text-white px-3 py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                title={downloadUrl ? "Download directly from CivitAI" : "No download URL available"}
+              >
+                <FileDown className="w-4 h-4" /> Download
+              </button>
+              
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="bg-primary text-background px-4 py-2 rounded font-semibold hover:bg-primary/80 disabled:opacity-50 flex items-center gap-2"
+                className="bg-primary text-background px-3 py-2 rounded font-semibold hover:bg-primary/80 disabled:opacity-50 flex items-center gap-2"
               >
                 {importing ? (
                   <>
@@ -448,6 +471,7 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
                 const version = model.modelVersions?.[0];
                 const imageUrl = version?.images?.[0]?.url?.replace("https://www.civitai.com", "https://civitai.com") || "/fallback.jpg";
                 const baseModel = version?.baseModel || "?";
+                const hasDownload = !!version?.files?.[0]?.downloadUrl;
 
                 return (
                   <div
@@ -474,10 +498,13 @@ export default function AddFromCivitaiSearch({ onImportSuccess }) {
                       <h3 className="text-sm font-semibold whitespace-normal break-words leading-snug mb-1 line-clamp-2">
                         {model.name}
                       </h3>
-                      <p className="text-xs opacity-70 flex justify-between">
+                      <div className="text-xs opacity-70 flex justify-between items-center">
                         <span>{model.type}</span>
-                        <span className="ml-2">{baseModel}</span>
-                      </p>
+                        <div className="flex items-center">
+                          {hasDownload && <FileDown className="w-3 h-3 ml-1 text-blue-400" title="Download available" />}
+                          <span className="ml-2">{baseModel}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
