@@ -107,6 +107,13 @@
    Start_Frontend.bat
    ```
 
+   **Linux:**
+   ```bash
+   # Start backend and frontend
+   chmod +x start_dev.sh
+   ./start_dev.sh
+   ```
+
    **Manual setup:**
    ```bash
    # Backend setup
