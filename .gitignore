@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 .env
+venv/
 lokarni.db
 
 # Node / Frontend
@@ -13,20 +14,20 @@ dist/
 *.log
 *.lock
 
-# Betriebssystem & Tools
+# Operating System & Tools
 .DS_Store
 Thumbs.db
 *.bak
 *.swp
 *.tmp
 
-# VS Code & andere Editoren
+# VS Code & other editors
 .vscode/
 .idea/
 
-# ZIPs / Export-Dateien
+# ZIPs / Export files
 *.zip
 
-# Ignoriere alle Dateien im Ordner, aber nicht den Ordner selbst
+# Ignore all files in the folder, but not the folder itself
 /import/images/*
 !/import/images/.gitkeep
