@@ -183,8 +183,6 @@ def export_assets(db: Session = Depends(get_db)):
     zip_file.writestr("assets.json", json.dumps(export_data, indent=2, ensure_ascii=False))
     zip_file.writestr("categories.json", json.dumps(categories_data, indent=2, ensure_ascii=False))
     zip_file.close()
-
-    zip_file.close()
     zip_buffer.seek(0)
     zip_data = zip_buffer.read()
     return StreamingResponse(
