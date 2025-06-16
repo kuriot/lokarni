@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List, Dict
 
 # 🔹 Für API-Antworten (GET)
@@ -33,11 +33,11 @@ class Asset(BaseModel):
 
     class Config:
         from_attributes = True
-        
-    # Validator um None zu {} zu konvertieren
-    @classmethod
-    def dict_default(cls, custom_fields):
-        return custom_fields or {}
+
+    # Validator: None -> {}
+    @validator("custom_fields", pre=True, always=True)
+    def set_custom_fields(cls, v):
+        return v or {}
 
 # 🔹 Für neue Einträge (POST)
 class AssetCreate(BaseModel):
@@ -96,6 +96,11 @@ class AssetUpdate(BaseModel):
     
     # Custom fields für Metadaten
     custom_fields: Optional[Dict[str, str]] = None
+
+    # Validator: None -> {}
+    @validator("custom_fields", pre=True, always=True)
+    def set_custom_fields(cls, v):
+        return v or {}
 
     class Config:
         from_attributes = True

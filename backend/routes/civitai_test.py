@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request, HTTPException
 router = APIRouter()
 
 @router.get("/test-api-key")
-def test_api_key(request: Request):
+def verify_api_key(request: Request):
     api_key = request.headers.get("X-Civitai-Api-Key")
 
     if not api_key:
