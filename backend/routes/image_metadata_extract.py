@@ -10,7 +10,7 @@ import requests
 
 router = APIRouter()
 
-# Beispielhafte Mappings für "random" Werte
+# Example mappings for "random" values
 PHOTO_TYPES = ["portrait", "landscape", "street photography", "fashion photography", "high fashion photography"]
 LIGHTING_TYPES = ["natural light", "studio lighting", "dramatic lighting", "soft lighting"]
 COMPOSITIONS = ["close-up shot", "full body shot", "medium shot", "wide angle"]
@@ -21,7 +21,7 @@ HAIRSTYLES = ["long hair", "short hair", "curly hair", "braids", "ponytail"]
 PHOTOGRAPHY_STYLES = ["minimalist", "vibrant", "moody", "cinematic", "documentary"]
 DEVICES = ["shot on Canon EOS R5", "shot on Nikon Z9", "shot on Panasonic Lumix S5 with Lumix S PRO 70-200mm f-2.8 O.I.S"]
 
-# Neues Request Model für URL
+# New request model for URLs
 class ImageUrlRequest(BaseModel):
     url: str
     api_key: Optional[str] = None
@@ -30,7 +30,7 @@ def generate_prompt_from_generator(inputs: dict) -> str:
     """Generiert einen Prompt basierend auf PromptGenerator Inputs"""
     prompt_parts = []
     
-    # Custom prompt zuerst
+    # Custom prompt first
     if inputs.get("custom") and inputs["custom"].strip():
         prompt_parts.append(inputs["custom"].strip())
     
@@ -38,7 +38,7 @@ def generate_prompt_from_generator(inputs: dict) -> str:
     artform = inputs.get("artform", "")
     photo_type = inputs.get("photo_type", "")
     
-    # Wenn photo_type "random" ist, wähle einen zufälligen Typ
+    # If photo_type is "random", choose a random type
     if photo_type == "random":
         photo_type = random.choice(PHOTO_TYPES)
     
@@ -50,7 +50,7 @@ def generate_prompt_from_generator(inputs: dict) -> str:
     # Default tags (subject)
     if inputs.get("default_tags") and inputs["default_tags"] != "disabled":
         subject = inputs["default_tags"].strip()
-        # Hairstyle hinzufügen wenn aktiviert
+        # Add hairstyle if enabled
         hairstyle = inputs.get("hairstyles", "")
         if hairstyle == "random":
             hairstyle = random.choice(HAIRSTYLES)
@@ -64,7 +64,7 @@ def generate_prompt_from_generator(inputs: dict) -> str:
         place = random.choice(PLACES)
     if place and place != "disabled":
         prompt_parts.append(place)
-        # Zusätzliche Details für bestimmte Orte
+        # Additional details for certain locations
         if "outdoor" in place or "nature" in place:
             prompt_parts.extend(["pine trees", "daytime", "wooden structure"])
     
@@ -117,7 +117,7 @@ def generate_prompt_from_generator(inputs: dict) -> str:
     if device and device != "disabled":
         prompt_parts.append(device)
     
-    # Zusätzlicher creativer Touch
+    # Additional creative touch
     if "outdoor" in " ".join(prompt_parts):
         prompt_parts.append("on a distant planet's alien landscape")
     
@@ -132,7 +132,7 @@ def parse_comfy_workflow(text_chunks: dict) -> dict:
 
         data = json.loads(raw)
         
-        # Sammle LoRA Informationen
+        # Collect LoRA information
         lora_models = []
 
         for node_id, node in data.items():
@@ -159,17 +159,17 @@ def parse_comfy_workflow(text_chunks: dict) -> dict:
                 result["Model hash"] = inputs.get("ckpt_hash", "")
 
             if class_type == "PromptGenerator":
-                # Verwende die neue Funktion für die Prompt-Generierung
+                # Use the new function for prompt generation
                 prompt = generate_prompt_from_generator(inputs)
                 result["Prompt"] = prompt
 
             if class_type == "Save Image w/Metadata":
                 result["Version"] = "ComfyUI"
-                # LoRA Models aus dem Save Image Node
+                # LoRA models from the Save Image node
                 if "lora_list" in inputs:
                     lora_models.append(inputs["lora_list"])
         
-        # Füge LoRA Models zum Prompt hinzu
+        # Add LoRA models to the prompt
         if lora_models and "Prompt" in result:
             result["Prompt"] = result["Prompt"] + ", " + ", ".join(set(lora_models))
 
@@ -180,10 +180,10 @@ def parse_comfy_workflow(text_chunks: dict) -> dict:
 def parse_parameters(text_chunks: dict) -> dict:
     result = {}
 
-    # Ignoriere das "prompt" Feld komplett, wenn es JSON-Daten enthält
+    # Ignore the "prompt" field entirely when it contains JSON data
     if "prompt" in text_chunks:
         prompt_text = text_chunks["prompt"].strip()
-        # Nur verwenden, wenn es kein JSON ist
+        # Only use it when it is not JSON
         if not prompt_text.startswith("{"):
             result["Prompt"] = prompt_text
 
@@ -210,7 +210,7 @@ def parse_parameters(text_chunks: dict) -> dict:
 
     return result
 
-# Bestehende Route für lokale Dateien
+# Existing route for local files
 @router.post("/extract-metadata/")
 async def extract_image_metadata(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".png"):
@@ -222,40 +222,40 @@ async def extract_image_metadata(file: UploadFile = File(...)):
     if not img.text or ("parameters" not in img.text and "prompt" not in img.text and "workflow" not in img.text):
         raise HTTPException(status_code=404, detail="Keine KI-Metadaten im Bild gefunden.")
 
-    # Erst parameters parsen
+    # Parse parameters first
     meta = parse_parameters(img.text)
     
-    # Dann workflow parsen - dies überschreibt den Prompt wenn ein PromptGenerator gefunden wird
+    # Then parse the workflow - this overrides the prompt if a PromptGenerator is found
     workflow_meta = parse_comfy_workflow(img.text)
     
-    # Workflow-Daten haben Priorität über parameters
+    # Workflow data has priority over parameters
     meta.update(workflow_meta)
     
-    # Wenn immer noch JSON im Prompt ist, entfernen
+    # Remove the prompt if it still contains JSON
     if "Prompt" in meta and isinstance(meta["Prompt"], str):
         if meta["Prompt"].strip().startswith("{"):
-            # Wenn ein Workflow vorhanden war aber kein PromptGenerator,
-            # versuche den Prompt aus anderen Quellen zu finden
+            # If a workflow existed but no PromptGenerator,
+            # try to find the prompt from other sources
             if "workflow" in img.text and "PromptGenerator" not in img.text.get("workflow", ""):
-                # Lösche den JSON-Prompt
+                # Delete the JSON prompt
                 del meta["Prompt"]
     
     return {"metadata": meta}
 
-# NEUE Route für URL-basierte Metadata-Extraktion
+# New route for URL-based metadata extraction
 @router.post("/extract-metadata-url/")
 async def extract_image_metadata_from_url(request: ImageUrlRequest, req: Request):
     try:
-        # API-Key aus Cookie lesen, falls nicht im Request
+        # Read API key from cookie if not provided in the request
         api_key = request.api_key
         if not api_key and "civitai-api-key" in req.cookies:
             api_key = req.cookies["civitai-api-key"]
         
-        # Prüfe ob es eine Civitai URL ist
+        # Check if it is a Civitai URL
         if "civitai.com" in request.url:
             return await extract_civitai_metadata(request.url, api_key)
         
-        # Normale Metadata-Extraktion für andere URLs
+        # Regular metadata extraction for other URLs
         response = requests.get(request.url, headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }, timeout=30)
@@ -263,27 +263,27 @@ async def extract_image_metadata_from_url(request: ImageUrlRequest, req: Request
         if response.status_code != 200:
             raise HTTPException(status_code=400, detail=f"Konnte Bild nicht von URL laden. Status: {response.status_code}")
         
-        # Öffne das Bild
+        # Open the image
         image_bytes = BytesIO(response.content)
         try:
             img = Image.open(image_bytes)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Ungültiges Bildformat: {str(e)}")
         
-        # Prüfe ob das Bild Metadaten hat (PNG-spezifisch)
+        # Check if the image has metadata (PNG-specific)
         if not hasattr(img, 'text') or not img.text:
             raise HTTPException(status_code=404, detail="Keine KI-Metadaten im Bild gefunden. Nur PNG-Bilder mit eingebetteten Metadaten werden unterstützt.")
         
-        # Prüfe ob relevante Metadaten vorhanden sind
+        # Check if relevant metadata is present
         if not any(key in img.text for key in ["parameters", "prompt", "workflow"]):
             raise HTTPException(status_code=404, detail="Keine unterstützten KI-Metadaten gefunden.")
         
-        # Verwende die gleiche Metadata-Extraktion wie bei lokalen Dateien
+        # Use the same metadata extraction as for local files
         meta = parse_parameters(img.text)
         workflow_meta = parse_comfy_workflow(img.text)
         meta.update(workflow_meta)
         
-        # JSON-Bereinigung
+        # JSON cleanup
         if "Prompt" in meta and isinstance(meta["Prompt"], str):
             if meta["Prompt"].strip().startswith("{"):
                 if "workflow" in img.text and "PromptGenerator" not in img.text.get("workflow", ""):
@@ -300,54 +300,54 @@ async def extract_image_metadata_from_url(request: ImageUrlRequest, req: Request
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fehler beim Verarbeiten: {str(e)}")
 
-# Hilfsfunktion für Civitai Metadata-Extraktion
+# Helper function for Civitai metadata extraction
 async def extract_civitai_metadata(url: str, api_key: Optional[str] = None):
     try:
         print(f"[DEBUG] Civitai URL received: {url}")
         
-        # Extrahiere die Image ID aus der URL
+        # Extract the image ID from the URL
         image_id = None
         
-        # Muster für direkte Image-Seiten (z.B. https://civitai.com/images/123456)
+        # Pattern for direct image pages (e.g. https://civitai.com/images/123456)
         if "civitai.com/images/" in url and not "image.civitai.com" in url:
             match = re.search(r'/images/(\d+)', url)
             if match:
                 image_id = match.group(1)
                 print(f"[DEBUG] Extracted image ID from web URL: {image_id}")
-                # Dies ist eine Webseiten-URL, nicht ein direktes Bild
-                # Wir müssen die API verwenden
+                # This is a webpage URL, not a direct image
+                # We need to use the API
                 result = await get_civitai_metadata_by_id(image_id, api_key)
                 if result:
                     return result
                 else:
-                    # Fallback: Versuche die URL direkt zu scrapen
+                    # Fallback: try scraping the URL directly
                     return await scrape_civitai_page(url, api_key)
         
-        # Muster für CDN-URLs (z.B. https://image.civitai.com/.../00228-2584352429.jpeg)
+        # Pattern for CDN URLs (e.g. https://image.civitai.com/.../00228-2584352429.jpeg)
         elif "image.civitai.com" in url:
             print(f"[DEBUG] Detected CDN URL")
-            # Die echte ID ist oft die Zahl nach dem Bindestrich
+            # The real ID is often the number after the dash
             match = re.search(r'/\d+-(\d+)\.(jpeg|jpg|png)', url)
             if match:
                 image_id = match.group(1)
                 print(f"[DEBUG] Extracted image ID from CDN URL: {image_id}")
             else:
-                # Alternative: Versuche die größte Zahl in der URL zu finden
+                # Alternatively try to find the largest number in the URL
                 numbers = re.findall(r'\d{6,}', url)  # Zahlen mit mindestens 6 Ziffern
                 if numbers:
-                    image_id = max(numbers)  # Nimm die größte Zahl
+                    image_id = max(numbers)  # Take the largest number
                     print(f"[DEBUG] Extracted image ID from numbers: {image_id}")
             
             if image_id:
-                # Versuche zuerst die API
+                # Try the API first
                 result = await get_civitai_metadata_by_id(image_id, api_key)
                 if result:
                     return result
             
-            # Fallback: Versuche PNG-Extraktion
+            # Fallback: attempt PNG extraction
             return await fallback_to_png_extraction(url)
         
-        # Keine erkannte Civitai-URL
+        # No recognized Civitai URL
         raise HTTPException(status_code=400, detail="Keine gültige Civitai-URL erkannt")
         
     except HTTPException:
@@ -355,7 +355,7 @@ async def extract_civitai_metadata(url: str, api_key: Optional[str] = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fehler beim Extrahieren der Civitai-Metadaten: {str(e)}")
 
-# Neue Funktion zum Scrapen der Civitai-Seite
+# New function to scrape the Civitai page
 async def scrape_civitai_page(url: str, api_key: Optional[str] = None):
     """Fallback: Versuche die Webseite zu scrapen wenn die API nicht funktioniert"""
     try:
@@ -375,7 +375,7 @@ async def scrape_civitai_page(url: str, api_key: Optional[str] = None):
                 detail=f"Konnte Civitai-Seite nicht laden: Status {response.status_code}"
             )
         
-        # Versuche JSON-LD Daten zu finden (oft in Webseiten eingebettet)
+        # Try to find JSON-LD data (often embedded in pages)
         import re
         json_ld_pattern = r'<script type="application/ld\+json">(.*?)</script>'
         matches = re.findall(json_ld_pattern, response.text, re.DOTALL)
@@ -384,7 +384,7 @@ async def scrape_civitai_page(url: str, api_key: Optional[str] = None):
             for match in matches:
                 try:
                     data = json.loads(match)
-                    # Extrahiere relevante Daten aus JSON-LD
+                    # Extract relevant data from JSON-LD
                     if isinstance(data, dict):
                         meta = {}
                         if "name" in data:
@@ -395,19 +395,19 @@ async def scrape_civitai_page(url: str, api_key: Optional[str] = None):
                 except:
                     continue
         
-        # Alternative: Suche nach Next.js __NEXT_DATA__
+        # Alternative: search for Next.js __NEXT_DATA__
         next_data_pattern = r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>'
         next_matches = re.findall(next_data_pattern, response.text, re.DOTALL)
         
         if next_matches:
             try:
                 next_data = json.loads(next_matches[0])
-                # Versuche Metadaten aus Next.js Daten zu extrahieren
+                # Try to extract metadata from Next.js data
                 if "props" in next_data and "pageProps" in next_data["props"]:
                     page_props = next_data["props"]["pageProps"]
                     meta = {}
                     
-                    # Verschiedene mögliche Strukturen durchsuchen
+                    # Search through various possible structures
                     if "image" in page_props:
                         image_data = page_props["image"]
                         if "meta" in image_data:
@@ -435,14 +435,14 @@ async def scrape_civitai_page(url: str, api_key: Optional[str] = None):
         )
 
 
-# Neue Funktion für API-Abruf
+# New function for API fetch
 async def get_civitai_metadata_by_id(image_id: str, api_key: Optional[str] = None):
     try:
         headers = {"User-Agent": "Lokarni-Importer/1.0"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
         
-        # Versuche verschiedene API-Endpunkte
+        # Try different API endpoints
         endpoints = [
             f"https://civitai.com/api/v1/images/{image_id}",
             f"https://civitai.com/api/v1/posts/{image_id}",  # Alternative
@@ -455,7 +455,7 @@ async def get_civitai_metadata_by_id(image_id: str, api_key: Optional[str] = Non
             if response.status_code == 200:
                 data = response.json()
                 if data:
-                    # Erfolg! Verarbeite die Daten
+                    # Success! Process the data
                     return process_civitai_api_response(data)
             elif response.status_code == 401:
                 raise HTTPException(
@@ -468,7 +468,7 @@ async def get_civitai_metadata_by_id(image_id: str, api_key: Optional[str] = Non
                     detail="Zugriff verweigert. Dieses Bild erfordert möglicherweise einen API-Key oder ist privat."
                 )
         
-        # Wenn kein Endpunkt funktioniert hat
+        # If no endpoint worked
         print(f"[DEBUG] All API endpoints failed for ID: {image_id}")
         return None
         
@@ -482,7 +482,7 @@ def process_civitai_api_response(data: dict) -> dict:
     """Verarbeite die API-Antwort und extrahiere Metadaten"""
     meta = {}
     
-    # Meta-Daten
+    # Meta data
     if "meta" in data:
         meta_data = data["meta"]
         if "prompt" in meta_data:
@@ -504,12 +504,12 @@ def process_civitai_api_response(data: dict) -> dict:
         if "Model hash" in meta_data:
             meta["Model hash"] = meta_data["Model hash"]
         
-        # Alle anderen Meta-Felder auch übernehmen
+        # Include all other meta fields as well
         for key, value in meta_data.items():
             if key not in meta and value is not None:
                 meta[key] = str(value)
     
-    # Model Version Info
+    # Model version info
     if "modelVersion" in data:
         version = data["modelVersion"]
         if "name" in version:
@@ -517,7 +517,7 @@ def process_civitai_api_response(data: dict) -> dict:
         if "baseModel" in version:
             meta["Base model"] = version["baseModel"]
     
-    # Model Info
+    # Model info
     if "model" in data:
         model = data["model"]
         if "name" in model:
@@ -540,7 +540,7 @@ def process_civitai_api_response(data: dict) -> dict:
     if "tags" in data:
         meta["Tags"] = ", ".join(data["tags"])
     
-    # URL zum eigentlichen Bild
+    # URL to the actual image
     if "url" in data:
         meta["Image URL"] = data["url"]
     
@@ -558,7 +558,7 @@ def process_civitai_api_response(data: dict) -> dict:
     return {"metadata": meta}
 
 
-# Fallback für PNG-Extraktion
+# Fallback for PNG extraction
 async def fallback_to_png_extraction(url: str):
     try:
         response = requests.get(url, headers={
@@ -571,7 +571,7 @@ async def fallback_to_png_extraction(url: str):
                 detail="Civitai API konnte das Bild nicht finden und direkter Download schlug fehl. Möglicherweise ist das Bild privat oder erfordert einen API-Key."
             )
         
-        # Prüfe den Content-Type
+        # Check the content type
         content_type = response.headers.get('content-type', '').lower()
         is_jpeg = 'jpeg' in content_type or 'jpg' in content_type or url.lower().endswith(('.jpg', '.jpeg'))
         
@@ -587,7 +587,7 @@ async def fallback_to_png_extraction(url: str):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Konnte Bild nicht öffnen: {str(e)}")
         
-        # Überprüfe ob es PNG ist
+        # Check if it is PNG
         if img.format != 'PNG':
             raise HTTPException(
                 status_code=422, 
@@ -600,7 +600,7 @@ async def fallback_to_png_extraction(url: str):
                 detail="Das PNG-Bild enthält keine eingebetteten Metadaten."
             )
         
-        # Verwende normale PNG-Extraktion
+        # Use normal PNG extraction
         meta = parse_parameters(img.text)
         workflow_meta = parse_comfy_workflow(img.text)
         meta.update(workflow_meta)

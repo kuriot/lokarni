@@ -14,16 +14,16 @@ class AssetTypeCreate(BaseModel):
 @router.get("/", response_model=List[str])
 def get_asset_types(db: Session = Depends(database.get_db)):
     """
-    Gibt alle eindeutigen Asset-Typen zurück, die in der Datenbank vorhanden sind.
-    Wenn keine Typen gefunden werden, werden Standard-Typen zurückgegeben.
+    Return all unique asset types in the database.
+    If none are found, default types are returned.
     """
-    # Abfrage aller eindeutigen Typen aus der Asset-Tabelle
+    # Query all distinct types from the Asset table
     result = db.query(models.Asset.type).distinct().filter(models.Asset.type != None).filter(models.Asset.type != "").all()
     
-    # Filtern von None-Werten und Extrahieren der Typen aus den Tupeln
+    # Filter out None values and extract the types from the tuples
     types = [t[0] for t in result if t[0]]
     
-    # Wenn keine Typen gefunden wurden, Standard-Typen zurückgeben
+    # Return default types if none were found
     if not types:
         types = [
             "Checkpoint", 
@@ -38,7 +38,7 @@ def get_asset_types(db: Session = Depends(database.get_db)):
             "Other"
         ]
     
-    # Sortieren der Typen alphabetisch
+    # Sort the types alphabetically
     types.sort()
     
     return types
@@ -46,21 +46,21 @@ def get_asset_types(db: Session = Depends(database.get_db)):
 @router.post("/", response_model=List[str])
 def add_asset_type(type_data: AssetTypeCreate, db: Session = Depends(database.get_db)):
     """
-    Fügt einen neuen Asset-Typ zur Datenbank hinzu.
-    
-    Diese Funktion erstellt einen Dummy-Asset-Eintrag mit dem neuen Typ,
-    damit er in der Liste der verfügbaren Typen erscheint.
+    Add a new asset type to the database.
+
+    This function creates a dummy asset entry with the new type
+    so that it appears in the list of available types.
     """
-    # Prüfen, ob der Typ bereits existiert
+    # Check if the type already exists
     existing_types = get_asset_types(db)
     if type_data.name in existing_types:
-        return existing_types  # Typ existiert bereits, keine Änderung notwendig
+        return existing_types  # Type already exists, no change required
     
-    # Typ-Name validieren
+    # Validate type name
     if not type_data.name or len(type_data.name.strip()) == 0:
         raise HTTPException(status_code=400, detail="Type name cannot be empty")
     
-    # Erstelle einen Dummy-Asset-Eintrag mit dem neuen Typ
+    # Create a dummy asset entry with the new type
     new_asset = models.Asset(
         name=f"Type Definition: {type_data.name}",
         type=type_data.name,
@@ -71,5 +71,5 @@ def add_asset_type(type_data: AssetTypeCreate, db: Session = Depends(database.ge
     db.add(new_asset)
     db.commit()
     
-    # Aktualisierte Liste der Typen zurückgeben
+    # Return updated list of types
     return get_asset_types(db)

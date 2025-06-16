@@ -43,7 +43,7 @@ export default function ImportImagePage({ onImportSuccess }) {
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
-  // Lade API-Key aus localStorage beim Start
+  // Load API key from localStorage on start
   useEffect(() => {
     const stored = localStorage.getItem("civitai-api-key");
     if (stored) setCivitaiApiKey(stored);
@@ -342,11 +342,11 @@ export default function ImportImagePage({ onImportSuccess }) {
           body: formData,
         });
       } else if (item.url) {
-        // URL-basierte Extraktion
+        // URL-based extraction
         const body = { url: item.url };
         if (civitaiApiKey) {
           body.api_key = civitaiApiKey;
-          // Speichere API-Key in localStorage und Cookie
+          // Store API key in localStorage and a cookie
           localStorage.setItem("civitai-api-key", civitaiApiKey);
           document.cookie = `civitai-api-key=${civitaiApiKey};path=/`;
         }
@@ -478,7 +478,7 @@ export default function ImportImagePage({ onImportSuccess }) {
         if (!uploadRes.ok) throw new Error("File upload failed.");
         uploadResult = await uploadRes.json();
       } else if (item.url) {
-        // URL-basiertes Upload
+        // URL-based upload
         const uploadRes = await fetch("http://localhost:8000/api/upload-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

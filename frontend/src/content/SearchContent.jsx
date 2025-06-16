@@ -28,7 +28,7 @@ export default function SearchContent() {
     return localStorage.getItem("lokarni-show-nsfw") === "true";
   });
 
-  // Unterkategorien laden
+  // Load subcategories
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -58,7 +58,7 @@ export default function SearchContent() {
     localStorage.setItem("lokarni-show-nsfw", showNSFW.toString());
   }, [showNSFW]);
 
-  // Keywords laden
+  // Load keywords
   useEffect(() => {
     const loadKeywords = async () => {
       try {
@@ -79,7 +79,7 @@ export default function SearchContent() {
     loadKeywords();
   }, [query, category, showNSFW]);
 
-  // Assets laden
+  // Load assets
   useEffect(() => {
     const loadResults = async () => {
       setIsLoading(true);
@@ -122,7 +122,7 @@ export default function SearchContent() {
   return (
     <TooltipProvider>
       <div className="w-full px-4 space-y-6">
-        {/* Suchkopf */}
+        {/* Search header */}
         <Card className="border-zinc-800 bg-zinc-900/30 backdrop-blur-sm overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-center mb-4">
@@ -131,7 +131,7 @@ export default function SearchContent() {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-8 gap-4">
-              {/* Kategorie-Auswahl */}
+              {/* Category selection */}
               <div className="lg:col-span-2">
                 <label className="text-xs text-zinc-500 mb-1.5 block">
                   <Filter className="w-3.5 h-3.5 inline mr-1.5" />
@@ -148,7 +148,7 @@ export default function SearchContent() {
                 </select>
               </div>
               
-              {/* Suchfeld */}
+              {/* Search field */}
               <div className="lg:col-span-5 relative">
                 <label className="text-xs text-zinc-500 mb-1.5 block">
                   <Search className="w-3.5 h-3.5 inline mr-1.5" />
@@ -215,7 +215,7 @@ export default function SearchContent() {
               </div>
             </div>
             
-            {/* Keyword-Wolke */}
+            {/* Keyword cloud */}
             <AnimatePresence>
               {keywords.length > 0 && (
                 <motion.div 
@@ -260,9 +260,9 @@ export default function SearchContent() {
           </CardContent>
         </Card>
         
-        {/* Ergebnisbereich */}
+        {/* Results section */}
         <div className="space-y-4">
-          {/* Ergebnisüberschrift */}
+          {/* Results header */}
           <div className="flex items-center justify-between px-1">
             <h2 className="text-lg font-medium text-zinc-300">
               {isLoading ? (
@@ -280,7 +280,7 @@ export default function SearchContent() {
             </h2>
           </div>
           
-          {/* Ergebnisse im Grid */}
+          {/* Results in grid */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -291,12 +291,12 @@ export default function SearchContent() {
               assets={results}
               setAssets={setResults}
               onSelect={setSelectedAsset}
-              layout="grid" // Sicherstellen, dass wir das Grid-Layout verwenden
+              layout="grid" // Ensure we use the grid layout
               showNSFW={showNSFW}
             />
           </motion.div>
 
-          {/* Keine Ergebnisse */}
+          {/* No results */}
           {!isLoading && results.length === 0 && query && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

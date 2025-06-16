@@ -76,7 +76,7 @@ export default function AddManualForm({ onSave }) {
       
       if (response.ok) {
         const data = await response.json();
-        // Füge auch alle pendingNewTypes hinzu
+        // Also add all pendingNewTypes
         const allTypes = [...new Set([...data, ...pendingNewTypes])];
         setAvailableTypes(allTypes);
       } else {
@@ -104,21 +104,21 @@ export default function AddManualForm({ onSave }) {
     
     setIsSubmittingType(true);
     try {
-      // Lokale Aktualisierung: Füge den neuen Typ zur lokalen Liste hinzu
+      // Local update: add the new type to the local list
       const newType = newTypeInput.trim();
       setPendingNewTypes(prev => [...prev, newType]);
       
-      // Aktualisiere verfügbare Typen
+      // Update available types
       setAvailableTypes(prev => [...prev, newType]);
       
-      // Setze den neuen Typ direkt in das Formular
+      // Set the new type directly in the form
       setFormData(prev => ({ ...prev, type: newType }));
       
-      // UI zurücksetzen
+      // Reset the UI
       setNewTypeInput("");
       setIsAddingType(false);
       
-      // Zeige dem Benutzer etwas Feedback
+      // Show some feedback to the user
       setFormSuccess("Typ hinzugefügt. Das Asset mit diesem Typ wird erst gespeichert, wenn Sie das Formular abschicken.");
       setTimeout(() => setFormSuccess(""), 3000);
     } finally {
@@ -283,16 +283,16 @@ export default function AddManualForm({ onSave }) {
       if (response.ok) {
         const asset = await response.json();
         
-        // Wenn der Typ neu ist, jetzt erst zum Server hinzufügen
+        // If the type is new, add it to the server now
         if (pendingNewTypes.includes(formData.type)) {
-          // Füge den Typ erst jetzt zum Server hinzu
+          // Add the type to the server now
           await fetch("http://localhost:8000/api/asset-types", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: formData.type })
           });
           
-          // Entferne den Typ aus den pendingNewTypes
+          // Remove the type from pendingNewTypes
           setPendingNewTypes(prev => prev.filter(t => t !== formData.type));
         }
         if (onSave) onSave(asset);
