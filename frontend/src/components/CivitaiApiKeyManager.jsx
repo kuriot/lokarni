@@ -4,7 +4,7 @@ export default function CivitaiApiKeyManager({ onChange }) {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("civitai_api_key") || "");
 
   useEffect(() => {
-    onChange?.(apiKey); // nur wenn onChange existiert
+    onChange?.(apiKey); // only if onChange exists
   }, [apiKey]);
 
   const handleSave = () => {

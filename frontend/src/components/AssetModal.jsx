@@ -152,21 +152,21 @@ const AssetTab = ({ asset, active, onClick, onClose }) => {
 
 // NSFW Select component
 const NSFWSelect = ({ value, onChange, icon: Icon }) => {
-  // Define NSFW options with string values - IMMER Strings verwenden!
+  // Define NSFW options with string values - always use strings!
   const nsfwOptions = [
     { value: "none", label: "None" },
     { value: "0", label: "SFW (0)" },
     { value: "1", label: "NSFW (1)" },
   ];
 
-  // Wert für die Select-Komponente vorbereiten
+  // Prepare value for the Select component
   const getSelectValue = () => {
-    // Zahlen in Strings umwandeln
+    // Convert numbers to strings
     if (value === 0) return "0";
     if (value === 1) return "1";
-    // Leere Werte in "none" umwandeln
+    // Convert empty values to "none"
     if (value === "" || value === null || value === undefined) return "none";
-    // Alles andere unverändert zurückgeben (sollte bereits ein String sein)
+    // Return everything else unchanged (should already be a string)
     return value;
   };
 
@@ -179,13 +179,13 @@ const NSFWSelect = ({ value, onChange, icon: Icon }) => {
       <Select 
         value={getSelectValue()} 
         onValueChange={(newValue) => {
-          // Wert für den State konvertieren
+          // Convert value for state
           let processedValue;
           
           if (newValue === "none") {
-            processedValue = ""; // Leerer String für "None"
+            processedValue = ""; // Empty string for "None"
           } else {
-            processedValue = newValue; // Als String belassen ("0" oder "1")
+            processedValue = newValue; // Keep as string ("0" or "1")
           }
           
           console.log("NSFW select changed:", { 
@@ -560,29 +560,29 @@ export default function AssetModal({ asset, onClose, onUpdate, onFetchAsset }) {
   };
 
 const handleDelete = async () => {
-  // Verwende das korrekte window.confirm für einen Standard-Bestätigungsdialog
+  // Use the proper window.confirm for a standard confirmation dialog
   if (!window.confirm("Willst du dieses Asset wirklich löschen?")) {
     return;
   }
   
   try {
-    // Asset-ID extrahieren und URL vorbereiten
+    // Extract asset ID and prepare URL
     const assetId = currentAsset.id;
     console.log("Attempting to delete asset ID:", assetId);
     
-    // URL ohne trailing slash verwenden
+    // Use URL without trailing slash
     const deleteUrl = `http://localhost:8000/api/assets/${assetId}`;
     
-    // DELETE-Request senden
+    // Send DELETE request
     const response = await fetch(deleteUrl, {
       method: "DELETE"
     });
     
-    // Auf Erfolg oder Fehler reagieren
+    // Handle success or failure
     if (response.ok) {
       console.log("Delete successful");
       
-      // UI nach erfolgreicher Löschung aktualisieren
+      // Update the UI after successful deletion
       if (openAssets.length === 1) {
         if (onUpdate) await onUpdate();
         onClose();
