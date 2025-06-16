@@ -196,7 +196,7 @@ def search_models(query: str, api_key: str = None, limit: int = 100, page: int =
         headers["Authorization"] = f"Bearer {api_key}"
 
     try:
-        # Stelle sicher, dass die Seitenzahl korrekt an CivitAI übergeben wird
+        # Ensure that the page number is passed correctly to CivitAI
         url = f"https://civitai.com/api/v1/models?query={query}&nsfw=true&limit={limit}&page={page}"
         if sort:
             url += f"&sort={sort}"
@@ -206,7 +206,7 @@ def search_models(query: str, api_key: str = None, limit: int = 100, page: int =
         response.raise_for_status()
         data = response.json()
         
-        # Optional: Deduplizierung der Ergebnisse auf Serverseite
+        # Optional: deduplicate the results on the server side
         if "items" in data and isinstance(data["items"], list):
             seen_ids = set()
             unique_items = []
@@ -216,7 +216,7 @@ def search_models(query: str, api_key: str = None, limit: int = 100, page: int =
                     seen_ids.add(item["id"])
                     unique_items.append(item)
             
-            # Wenn Deduplizierung aktiv ist, ersetze die Items durch die einzigartigen Items
+            # If deduplication is active, replace the items with the unique ones
             if len(unique_items) < len(data["items"]):
                 print(f"[Lokarni API] Deduplizierung: {len(data['items'])} -> {len(unique_items)} Ergebnisse")
                 data["items"] = unique_items

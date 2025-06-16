@@ -12,7 +12,7 @@ from backend.models import Asset, SubCategory
 
 router = APIRouter()
 
-# 📥 ZIP-Import
+# ZIP import
 @router.post("/assets/import/")
 async def import_zip_file(file: UploadFile, db: Session = Depends(get_db)):
     if not file.filename.endswith(".zip"):
@@ -38,7 +38,7 @@ async def import_zip_file(file: UploadFile, db: Session = Depends(get_db)):
         media_root = os.path.join("import", "images")
         os.makedirs(media_root, exist_ok=True)
 
-        # Finde die höchste vorhandene ID für die Auto-Increment-Simulation
+        # Find the highest existing ID for auto-increment simulation
         existing_assets = db.query(Asset).all()
         max_id = max([asset.id for asset in existing_assets], default=0)
         
@@ -48,7 +48,7 @@ async def import_zip_file(file: UploadFile, db: Session = Depends(get_db)):
             old_id = asset_data.get("id")
             media_files = []
 
-            # Verarbeite alle Media-Dateien
+            # Process all media files
             for file in asset_data.get("media_files", []):
                 filename = os.path.basename(file)
                 source_path = os.path.join(tmp_dir, "media", filename)
@@ -112,7 +112,7 @@ async def import_zip_file(file: UploadFile, db: Session = Depends(get_db)):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-# 📤 ZIP-Export
+# ZIP export
 @router.get("/assets/export/")
 def export_assets(db: Session = Depends(get_db)):
     assets = db.query(Asset).all()
@@ -158,7 +158,7 @@ def export_assets(db: Session = Depends(get_db)):
 
         export_data.append(data)
 
-    # Export categories und subcategories for reference
+        # Export categories and subcategories for reference
     from backend.models import Category
     categories = db.query(Category).all()
     categories_data = []
@@ -182,8 +182,6 @@ def export_assets(db: Session = Depends(get_db)):
 
     zip_file.writestr("assets.json", json.dumps(export_data, indent=2, ensure_ascii=False))
     zip_file.writestr("categories.json", json.dumps(categories_data, indent=2, ensure_ascii=False))
-    zip_file.close()
-
     zip_file.close()
     zip_buffer.seek(0)
     zip_data = zip_buffer.read()

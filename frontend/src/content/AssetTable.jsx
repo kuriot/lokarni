@@ -160,16 +160,16 @@ const handleExport = async () => {
   try {
     setImportStatus("Export wird vorbereitet...");
     
-    // Verwende axios statt fetch für konsistenteres Verhalten
+    // Use axios instead of fetch for more consistent behavior
     const response = await axios.get('/api/assets/export/', {
-      responseType: 'blob', // Wichtig für die Binärdaten
-      timeout: 60000, // 60 Sekunden Timeout für große Exporte
+      responseType: 'blob', // Important for binary data
+      timeout: 60000, // 60 second timeout for large exports
       headers: {
         'Accept': 'application/zip',
       }
     });
 
-    // Erstelle den Download
+    // Create the download
     const blob = new Blob([response.data], { type: 'application/zip' });
     const date = new Date().toISOString().slice(0, 10);
     const filename = `Lokarni_Export_${date}.zip`;
@@ -181,7 +181,7 @@ const handleExport = async () => {
   } catch (error) {
     console.error('Export Fehler:', error);
     
-    // Detaillierte Fehlermeldung
+    // Detailed error message
     let errorMessage = "Export fehlgeschlagen ❌";
     if (error.response) {
       errorMessage += ` (${error.response.status})`;

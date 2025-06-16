@@ -15,7 +15,7 @@ def test_api_key(request: Request):
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
-        # Ein echter privater Endpunkt – gibt Infos über den Nutzer zurück
+        # A real private endpoint – returns information about the user
         response = requests.get("https://civitai.com/api/v1/user", headers=headers)
     except requests.RequestException:
         raise HTTPException(status_code=503, detail="Civitai nicht erreichbar.")

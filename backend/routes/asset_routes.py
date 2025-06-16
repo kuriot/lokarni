@@ -8,7 +8,7 @@ from .civitai_import import import_from_civitai
 
 router = APIRouter()
 
-# Hinzufügen der route-Duplikation mit trailing slash
+# Add route duplication with trailing slash
 @router.get("/{asset_id}/", response_model=schemas.Asset)
 def get_asset_with_slash(asset_id: int, db: Session = Depends(database.get_db)):
     return get_asset(asset_id, db)
@@ -46,31 +46,31 @@ def update_asset(asset_id: int, asset_data: schemas.AssetUpdate, db: Session = D
     if 'linked_assets' in update_data:
         linked_assets = update_data['linked_assets']
         
-        # Wenn linked_assets None ist, setze es auf eine leere Liste
+        # If linked_assets is None, set it to an empty list
         if linked_assets is None:
             update_data['linked_assets'] = []
             print(f"Leere linked_assets Liste gesetzt (None)")
-        # Wenn linked_assets eine leere Liste ist, behalte sie bei
+        # If linked_assets is an empty list, keep it
         elif isinstance(linked_assets, list) and len(linked_assets) == 0:
             update_data['linked_assets'] = []
             print(f"Leere linked_assets Liste beibehalten")
-        # Wenn wir vollständige Asset-Objekte statt nur IDs erhalten haben, extrahiere die IDs
+        # If we received full asset objects instead of just IDs, extract the IDs
         elif isinstance(linked_assets, list):
-            # Prüfe, ob es sich um eine Liste von Objekten mit 'id' handelt
+            # Check if it is a list of objects with an 'id'
             if len(linked_assets) > 0 and isinstance(linked_assets[0], dict) and 'id' in linked_assets[0]:
-                # Konvertiere Liste von Asset-Objekten zu Liste von Asset-IDs
+                # Convert list of asset objects to a list of asset IDs
                 update_data['linked_assets'] = [asset['id'] for asset in linked_assets if isinstance(asset, dict) and 'id' in asset]
                 print(f"Konvertierte linked_assets zu IDs: {update_data['linked_assets']}")
-            # Wenn es bereits eine Liste von IDs ist, konvertiere String-IDs zu Integer
+            # If it's already a list of IDs, convert string IDs to integers
             elif all(isinstance(item, (int, str)) for item in linked_assets):
                 # Konvertiere String-IDs zu Integer-IDs
                 update_data['linked_assets'] = [int(item) if isinstance(item, str) and item.isdigit() else item for item in linked_assets]
                 print(f"linked_assets ist bereits eine Liste von IDs: {update_data['linked_assets']}")
-            # Für andere Formate, setze auf leere Liste
+            # For other formats, set to an empty list
             else:
                 update_data['linked_assets'] = []
                 print(f"Unbekanntes Format für linked_assets, setze auf leere Liste")
-        # Für andere Typen, setze auf leere Liste
+        # For other types, set to an empty list
         else:
             update_data['linked_assets'] = []
             print(f"linked_assets ist kein gültiges Format, setze auf leere Liste")
@@ -174,7 +174,7 @@ def get_assets(
 
         def matches_category(asset):
             combined = " ".join([
-                asset.name or "",      # Name/Titel hinzugefügt
+                asset.name or "",      # Name/title added
                 asset.tags or "",
                 asset.trigger_words or "",
                 asset.positive_prompt or "",
@@ -210,7 +210,7 @@ def create_asset(asset: schemas.AssetCreate, db: Session = Depends(database.get_
         download_url=asset.download_url,
         media_files=asset.media_files,
         is_favorite=asset.is_favorite,
-        custom_fields=asset.custom_fields  # WICHTIG: custom_fields hinzufügen!
+        custom_fields=asset.custom_fields  # IMPORTANT: add custom_fields!
     )
 
     db.add(new_asset)
@@ -234,7 +234,7 @@ def get_keywords(q: str = "", category: str = "All", nsfw_filter: bool = False, 
 
         def matches_category(asset):
             combined = " ".join([
-                asset.name or "",      # Name/Titel hinzugefügt
+                asset.name or "",      # Name/title added
                 asset.tags or "",
                 asset.trigger_words or "",
                 asset.positive_prompt or "",
@@ -248,7 +248,7 @@ def get_keywords(q: str = "", category: str = "All", nsfw_filter: bool = False, 
 
     for asset in assets:
         content = " ".join([
-            asset.name or "",          # Name/Titel hinzugefügt
+            asset.name or "",          # Name/title added
             asset.tags or "",
             asset.trigger_words or "",
             asset.positive_prompt or "",
@@ -295,7 +295,7 @@ def search_assets(q: str = "", category: str = "All", nsfw_filter: bool = False,
 
         def matches_category(asset):
             combined = " ".join([
-                asset.name or "",      # Name/Titel hinzugefügt
+                asset.name or "",      # Name/title added
                 asset.tags or "",
                 asset.trigger_words or "",
                 asset.positive_prompt or "",
@@ -309,8 +309,8 @@ def search_assets(q: str = "", category: str = "All", nsfw_filter: bool = False,
 
     def matches(asset: models.Asset):
         content = " ".join([
-            asset.name or "",          # Name/Titel hinzugefügt
-            asset.description or "",   # Beschreibung hinzugefügt
+            asset.name or "",          # Name/title added
+            asset.description or "",   # Description added
             asset.tags or "",
             asset.trigger_words or "",
             asset.positive_prompt or "",
@@ -320,7 +320,7 @@ def search_assets(q: str = "", category: str = "All", nsfw_filter: bool = False,
             asset.model_version or "",
             asset.base_model or "",
             asset.slug or "",
-            asset.creator or "",       # Ersteller hinzugefügt
+            asset.creator or "",       # Creator added
         ]).lower()
         return all(kw in content for kw in keywords)
 
@@ -419,7 +419,7 @@ def get_asset(asset_id: int, db: Session = Depends(database.get_db)):
     if not asset:
         raise HTTPException(status_code=404, detail="Asset nicht gefunden")
     
-    # Stelle sicher, dass linked_assets eine Liste ist
+    # Ensure that linked_assets is a list
     if asset.linked_assets is None:
         asset.linked_assets = []
     elif not isinstance(asset.linked_assets, list):

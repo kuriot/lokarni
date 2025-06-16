@@ -265,7 +265,7 @@ alembic upgrade head
 
 ### **Data Management**
 - **Export**: Use the settings menu for data export options
-- **Backup**: Copy the `loklarni.db` file and `import/` folder
+- **Backup**: Copy the `lokarni.db` file and `import/` folder
 - **Restore**: Replace database and media files with backups
 
 ---
